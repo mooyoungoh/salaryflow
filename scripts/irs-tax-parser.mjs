@@ -50,8 +50,7 @@ export function parseIrsBulletin(html,year,source){
  const stdIndex=adjusted.findIndex(t=>/\.14\s+Standard Deduction/i.test(t));
  if(taxIndex<0||stdIndex<taxIndex)throw Error('Missing tax schedule or standard deduction section');
  const nextTaxSection=adjusted.findIndex((t,i)=>i>taxIndex&&/^\.02\s/.test(t));
- if(nextTaxSection<0||nextTaxSection>stdIndex)throw Error('Could not isolate IRS section 4.01');
- const taxLines=adjusted.slice(taxIndex,nextTaxSection);
+ const taxLines=adjusted.slice(taxIndex,nextTaxSection>taxIndex&&nextTaxSection<stdIndex?nextTaxSection:stdIndex);
  const result={};
  for(let i=0;i<4;i++){
   const marker=new RegExp('^TABLE\\s+'+(i+1)+'\\s*[-–]\\s*Section\\s+1\\(j\\)\\(2\\)','i');
