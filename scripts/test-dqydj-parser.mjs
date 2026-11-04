@@ -20,6 +20,10 @@ const html='<h1>Income by State</h1><p>On this page are 2026 income by state sta
  '<table><thead><tr><th>State</th><th>25%</th><th>Median</th><th>75%</th><th>Top 1%</th><th>Average</th></tr></thead><tbody>'+rows+'</tbody></table>'+
  '<h2>Estimates of number of workers and households</h2>';
 assert.equal(sourceEdition(html),2026);
+const nextHtml=html.replaceAll('2026','2027').replaceAll('2025','2026');
+assert.equal(sourceEdition(nextHtml),2027);
+assert.deepEqual(parseDqydj(nextHtml,2027),snapshot.values);
+
 assert.deepEqual(parseDqydj(html,2026),snapshot.values);
 assert.throws(()=>parseDqydj(html.replace('December 2025','December 2024'),2026),/income period mismatch/);
 assert.throws(()=>parseDqydj(html.replace(rows.split('\n')[0],''),2026),/(Incomplete|too short)/);
