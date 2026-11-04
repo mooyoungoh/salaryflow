@@ -61,3 +61,4 @@ jobs:
         run: |
           echo "Official IRS dataset passed all checks, with every reference value changing by at most 10%."
           gh pr merge "$PR_URL" --squash --delete-branch
+          gh pr comment "$PR_URL" --body "@mooyoungoh — Salary Flow staging data PR was automatically merged after passing the official IRS source and <=10% change checks. Review the merge history here: $PR_URL"
