@@ -4,12 +4,12 @@ import {readFileSync} from 'node:fs';
 const load=p=>JSON.parse(readFileSync(new URL('../'+p,import.meta.url),'utf8'));
 const mf=load('data/manifest.json');
 assert.equal(mf.schema,1);
-const types=['tax','us','world','payroll'];
+const types=['tax','us','world','payroll','arizona'];
 for(const type of types){
  assert(mf[type]&&/^data\/[a-z0-9-]+\.json$/.test(mf[type].path), 'Bad manifest path: '+type);
  assert(Number.isInteger(mf[type].year),'Bad dataset year: '+type);
 }
-const tax=load(mf.tax.path),us=load(mf.us.path),wid=load(mf.world.path),payroll=load(mf.payroll.path);
+const tax=load(mf.tax.path),us=load(mf.us.path),wid=load(mf.world.path),payroll=load(mf.payroll.path),arizona=load(mf.arizona.path);
 const rising=(a,n)=>Array.isArray(a)&&a.length===n&&a.every((v,i)=>Number.isFinite(v)&&v>0&&(i===0||v>a[i-1]));
 assert.equal(tax.schema,1);
 assert.equal(tax.taxYear,mf.tax.year);
@@ -39,6 +39,13 @@ assert.equal(payroll.medicareRate,.0145);
 assert.equal(payroll.additionalMedicareRate,.009);
 assert.deepEqual(payroll.additionalMedicareThresholds,{single:200000,mfj:250000,mfs:125000,hoh:200000});
 if(payroll.taxYear===2026)assert.equal(payroll.socialSecurityWageBase,184500,'2026 SSA baseline mismatch');
+assert.equal(arizona.schema,1);
+assert.equal(arizona.taxYear,mf.arizona.year);
+assert(mf.arizona.year<=mf.tax.year,'Arizona reference cannot lead the active federal tax year');
+assert.equal(arizona.rate,0.025,'Arizona flat tax rate regression');
+assert.deepEqual(Object.keys(arizona.standardDeduction).sort(),['hoh','mfj','mfs','single']);
+for(const v of Object.values(arizona.standardDeduction))assert(Number.isSafeInteger(v)&&v>=0&&v<100000);
+if(arizona.taxYear===2026)assert.deepEqual(arizona.standardDeduction,{single:15750,mfs:15750,mfj:31500,hoh:23625},'Enacted 2026 Arizona statutory deduction mismatch');
 const federal=(taxable,limits)=>{
  const rates=[.10,.12,.22,.24,.32,.35,.37];
  let result=0,prev=0;
