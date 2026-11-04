@@ -43,7 +43,7 @@ export function extractCountryRows(text,country,year){
  assert(arr.every((x,i)=>x>0&&(i===0||x>arr[i-1])),'Invalid WID percentile ordering '+country);
  return arr;
 }
-async function downloadCountry(country,year){
+export async function downloadCountry(country,year){
  const url='https://wid.world/bulk_download/WID_data_'+country+'.csv';
  const ctl=new AbortController(),timeout=setTimeout(()=>ctl.abort(),90000);
  try{
