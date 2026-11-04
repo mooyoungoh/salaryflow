@@ -29,8 +29,9 @@ jobs:
       - name: Validate new WID candidate and active datasets
         if: steps.wid.outputs.found == 'true'
         run: node scripts/validate-data.mjs
-      - name: Open WID draft PR for human verification
+      - name: Open WID PR with full review trail
         if: steps.wid.outputs.found == 'true'
+        id: pr
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -39,7 +40,15 @@ jobs:
           base: main
           title: '[Data review] WID country thresholds update'
           body-path: data-review-report.md
-          draft: true
+          draft: ${{ steps.candidate.outputs.auto_safe != 'true' }}
           add-paths: |
             data/*.json
             data-review-report.md
+      - name: Auto-merge verified WID changes on staging
+        if: steps.candidate.outputs.auto_safe == 'true' && steps.pr.outputs.pull-request-url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+        run: |
+          gh pr merge "$PR_URL" --squash --delete-branch
+          gh pr comment "$PR_URL" --body "@mooyoungoh — Salary Flow staging WID reference data auto-merged after validation. PR and change history: $PR_URL"
