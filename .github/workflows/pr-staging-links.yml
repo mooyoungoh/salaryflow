@@ -23,5 +23,9 @@ jobs:
               *) continue ;;
             esac
             [ "$(date -u -d "$created" +%s)" -ge "$(date -u -d "$RUN_CREATED" +%s)" ] || continue
+            # Avoid duplicate notifications when more than one data monitor runs close together.
+            if gh api "repos/$GH_REPO/issues/$num/comments?per_page=100" --jq '.[].body' | grep -Fq 'Staging website](https://mooyoungoh.github.io/salaryflow/)'; then
+              continue
+            fi
             gh pr comment "$num" --body "@mooyoungoh — [Staging website](https://mooyoungoh.github.io/salaryflow/) | [PR changes](https://github.com/$GH_REPO/pull/$num/files) | [Checks](https://github.com/$GH_REPO/pull/$num/checks). Staging serves main; PR data appears on the site only after merge and deployment. Review the Files changed tab before merge."
           done
