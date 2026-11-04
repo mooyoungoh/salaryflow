@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - scripts/probe-wid.mjs
+      - .github/workflows/probe-wid.yml
 permissions:
   contents: read
 jobs:
