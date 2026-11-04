@@ -9,12 +9,12 @@ const current={
 };
 const sources=[
  {id:'tax',label:'IRS federal income tax',url:'https://www.irs.gov/newsroom/working-families-tax-cuts-individuals-and-workers',
-   match:(html)=>[...html.matchAll(/Tax year\\s+(20\\d{2})/gi)].map(x=>Number(x[1]))},
+   match:(html)=>[...html.matchAll(/Tax year\s+(20\d{2})/gi)].map(x=>Number(x[1]))},
  {id:'us',label:'DQYDJ US individual-income statistics',url:'https://dqydj.com/income-by-state/',
-   match:(html)=>[...html.matchAll(/(20\\d{2})\\s+income by state statistics/gi)].map(x=>Number(x[1]))},
+   match:(html)=>[...html.matchAll(/(20\d{2})\s+income by state statistics/gi)].map(x=>Number(x[1]))},
  // WID releases often revise previously published years: do not infer threshold updates from a report title.
  {id:'wid',label:'WID income distribution data',url:'https://wid.world/news/',
-   match:(html)=>[...html.matchAll(/World Inequality Database\\s+(20\\d{2})\\s+Update/gi)].map(x=>Number(x[1])),
+   match:(html)=>[...html.matchAll(/World Inequality Database\s+(20\d{2})\s+Update/gi)].map(x=>Number(x[1])),
    note:'A news release is only a candidate; verify country, population, income concept and 6 thresholds before updating.'}
 ];
 const repo=process.env.GITHUB_REPOSITORY,token=process.env.GITHUB_TOKEN;
@@ -54,7 +54,7 @@ for(const source of sources){
    source.note||'Verify source data, tax definitions, state applicability and numeric thresholds before approving a change.',
    'Steps: inspect the source; build a new versioned JSON file; run validate-data.mjs and compare existing output; submit a PR.',
    'Never replace reference data based on the detected year alone.'
-  ].join('\\n\\n');
+  ].join('\n\n');
   if(dryRun){console.log('DRY RUN: '+title);continue}
   await github('/issues',{method:'POST',body:JSON.stringify({title,body})});
   console.log('Created issue: '+title);found++;
