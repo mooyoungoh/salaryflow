@@ -51,7 +51,7 @@ export async function downloadCountry(country,year){
   if(!res.ok||!res.body)throw Error('WID CSV HTTP '+res.status+' for '+country);
   const lines=createInterface({input:Readable.fromWeb(res.body),crlfDelay:Infinity});
   let cols,byteCount=0;
-  const filtered=[];
+  const filtered=[];const diagnostics=[];const years=new Set();
   for await (const line of lines){
    byteCount+=Buffer.byteLength(line,'utf8');
    assert(byteCount<120*1024*1024,'WID country CSV too large: '+country);
@@ -62,11 +62,17 @@ export async function downloadCountry(country,year){
     filtered.push(cols.join(';'));continue;
    }
    const v=line.split(';');
-   if(v[cols.indexOf('year')]!==String(year)||v[cols.indexOf('country')]!==country)continue;
+   if(v[cols.indexOf('country')]!==country)continue;
+   if(/tptinc|inyixx|ptinc992|ptincj992/i.test(v[cols.indexOf('variable')])){
+    years.add(v[cols.indexOf('year')]);
+    if(v[cols.indexOf('year')]===String(year)&&diagnostics.length<18)diagnostics.push(line.slice(0,140));
+   }
+   if(v[cols.indexOf('year')]!==String(year))continue;
    const variable=v[cols.indexOf('variable')];
    if(variable!==varcode&&variable!==pricecode)continue;
    filtered.push(line);
   }
+  console.log('WID DIAGNOSTIC '+country+' candidate rows '+filtered.length+' matching years '+[...years].sort().slice(-7)+' samples '+JSON.stringify(diagnostics));
   return {values:extractCountryRows(filtered.join('\n'),country,year),source:url};
  }finally{clearTimeout(timeout)}
 }
