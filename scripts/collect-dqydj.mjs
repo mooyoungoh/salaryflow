@@ -59,9 +59,10 @@ export function parseDqydj(html,edition){
   vals[state]=arr;
  }
  assert.equal(Object.keys(vals).length,51,'Incomplete 50 states + DC');
- const match=section.match(/Nationwide\s+in\s+\d{4}[\s\S]{0,2000}?summary\s+of\s+individual\s+income\s+statistics:/i);
+ const normalizedSection=clean(section);
+ const match=normalizedSection.match(/Nationwide\s+in\s+\d{4}.{0,500}?summary\s+of\s+individual\s+income\s+statistics:/i);
  assert(match,'Missing individual-income nationwide summary');
- const summary=clean(section.slice(match.index,match.index+6000));
+ const summary=normalizedSection.slice(match.index,match.index+1400);
  function extract(label){
   const re=new RegExp(label+'\\s+(?:individual\\s+)?income\\s+was\\s+\\$([\\d,]+)','i');
   const m=summary.match(re);
