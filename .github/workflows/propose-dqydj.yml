@@ -1,0 +1,43 @@
+name: Propose DQYDJ state income update
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 15 18 * *'
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  propose-us-income:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify DQYDJ parser and state mappings
+        run: node scripts/test-dqydj-parser.mjs
+      - name: Fetch official DQYDJ edition and candidate
+        id: dqydj
+        run: node scripts/collect-dqydj.mjs
+      - name: Prepare versioned data and change report
+        if: steps.dqydj.outputs.found == 'true'
+        run: |
+          node scripts/prepare-data-pr.mjs us "${{ steps.dqydj.outputs.edition }}"
+      - name: Validate income and tax references before proposal
+        if: steps.dqydj.outputs.found == 'true'
+        run: node scripts/validate-data.mjs
+      - name: Draft human-review PR, never auto-merge DQYDJ
+        if: steps.dqydj.outputs.found == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'Propose updated DQYDJ US individual income percentiles'
+          branch: data-review/dqydj-next-year
+          base: main
+          title: '[Data review] DQYDJ US individual income update'
+          body-path: data-review-report.md
+          draft: true
+          add-paths: |
+            data/*.json
+            data-review-report.md
