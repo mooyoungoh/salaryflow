@@ -3,12 +3,12 @@ on:
   push:
     paths:
       - 'data/**'
-      - 'scripts/validate-data.mjs'
+      - 'scripts/**'
       - '.github/workflows/validate-data.yml'
   pull_request:
     paths:
       - 'data/**'
-      - 'scripts/validate-data.mjs'
+      - 'scripts/**'
   workflow_dispatch:
   schedule:
     - cron: '17 13 1 * *'
@@ -22,4 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node scripts/validate-data.mjs
+      - name: Validate active datasets and regression samples
+        run: node scripts/validate-data.mjs
+      - name: Test candidate PR preparation with synthetic data
+        run: node scripts/test-data-pipeline.mjs
