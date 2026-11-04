@@ -1,0 +1,54 @@
+name: Extract IRS tax tables for review
+on:
+  workflow_dispatch:
+    inputs:
+      bulletin_url:
+        description: "Official IRS Internal Revenue Bulletin URL containing the new tax rate tables"
+        required: true
+        type: string
+      tax_year:
+        description: "Tax year of the new IRS tables (for example, 2027)"
+        required: true
+        type: string
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  propose-irs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check parser against existing 2026 values
+        run: node scripts/test-irs-parser.mjs
+      - name: Extract IRS tables (new tax year only)
+        env:
+          BULLETIN_URL: ${{ inputs.bulletin_url }}
+          TAX_YEAR: ${{ inputs.tax_year }}
+        run: node scripts/collect-irs-tax.mjs "$BULLETIN_URL" "$TAX_YEAR"
+      - name: Create proposed JSON, update staging manifest and generate difference report
+        env:
+          TAX_YEAR: ${{ inputs.tax_year }}
+        run: node scripts/prepare-data-pr.mjs tax "$TAX_YEAR"
+      - name: Validate staged data
+        run: node scripts/validate-data.mjs
+      - name: Create draft PR (manual review required)
+        id: pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Propose new IRS tax tables for ${{ inputs.tax_year }}"
+          branch: "data-review/irs-tax-${{ inputs.tax_year }}"
+          base: main
+          title: "[IRS tax review] ${{ inputs.tax_year }} tax brackets and deductions"
+          body-path: data-review-report.md
+          draft: true
+          add-paths: |
+            data/*.json
+            data-review-report.md
+      - name: Print PR link
+        if: steps.pr.outputs.pull-request-url != ''
+        run: echo "${{ steps.pr.outputs.pull-request-url }}"
