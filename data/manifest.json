@@ -16,5 +16,9 @@
   "payroll": {
     "path": "data/payroll-2026.json",
     "year": 2026
+  },
+  "arizona": {
+    "path": "data/arizona-2026.json",
+    "year": 2026
   }
 }
