@@ -56,13 +56,17 @@ if(kind==='tax'){
 const sorted=[...stats].sort((a,b)=>Math.abs(b.change)-Math.abs(a.change));
 const anomalous=sorted.filter(x=>Math.abs(x.change)>25);
 const unchanged=stats.filter(x=>x.change===0);
-// Automatic merge is deliberately restricted to machine-extracted official IRS tables.
-// DQYDJ and WID candidate statistics always require a human review, regardless of variation.
+// All three official collectors are eligible for staging auto-merge after strict source,
+// structure, continuity, numeric-change and live snapshot checks. Extraordinary changes
+// remain a review PR rather than silently replacing a working baseline.
 const sourceIsOfficialIrs=kind==='tax'&&/^https:\/\/www\.irs\.gov\/irb\/20\d{2}-\d{2}_irb(?:\?.*)?$/i.test(candidate.source);
-const standardDeductionNormal=kind==='tax'&&Object.values(candidate.values).every(v=>v.ded>0);
+const officialSource=sourceIsOfficialIrs||
+ (kind==='us'&&candidate.source==='https://dqydj.com/income-by-state/'&&candidate.incomeYear===year-1)||
+ (kind==='world'&&candidate.source==='https://wid.world/data/');
+const standardDeductionNormal=kind!=='tax'||Object.values(candidate.values).every(v=>v.ded>0);
 const maxAbsChange=sorted.length?Math.abs(sorted[0].change):Infinity;
-const maxAutoPercent=10;
-const autoSafe=sourceIsOfficialIrs&&standardDeductionNormal&&maxAbsChange<=maxAutoPercent&&unchanged.length!==stats.length;
+const maxAutoPercent=kind==='tax'?10:25;
+const autoSafe=officialSource&&standardDeductionNormal&&maxAbsChange<=maxAutoPercent&&unchanged.length!==stats.length;
 if(process.env.GITHUB_OUTPUT){
  const {appendFileSync}=await import('node:fs');
  appendFileSync(process.env.GITHUB_OUTPUT,'auto_safe='+(autoSafe?'true':'false')+'\n');
@@ -90,7 +94,7 @@ const lines=[
  '- Values unchanged: '+unchanged.length,
  '- Changes above 25%: '+anomalous.length,
  '- Maximum absolute change: '+maxAbsChange.toFixed(2)+'%',
- '- Automatic merge decision: **'+(autoSafe?'ELIGIBLE (official IRS and <=10% per field)':'MANUAL REVIEW REQUIRED')+'**',
+ '- Automatic merge decision: **'+(autoSafe?'ELIGIBLE (verified source and within '+maxAutoPercent+'% per field)':'REVIEW REQUIRED: source, unusually large change, or no data change')+'**',
  '',
  '## Ten largest changes',
  '',
@@ -106,7 +110,7 @@ const lines=[
  '- [ ] Verify IRS tax year, filing status and deduction eligibility for taxes',
  '- [ ] Investigate all differences above 25%, including revisions to historical data',
  '- [ ] Verify tax take-home estimates and income rankings on the staging website',
- '- [ ] Manual review required for WID, DQYDJ or changes beyond threshold; small official IRS changes may merge automatically on staging after CI.',
+ '- [ ] Verified official-source changes within their configured per-field threshold can auto-merge on staging; exceptional changes require review.',
  '- [ ] Production organization stays unchanged regardless of staging merge.',
  ''
 ];
