@@ -26,10 +26,10 @@ Production is maintained separately at https://salaryflow.github.io/. **Do not c
 
 ## Pull requests and email notifications
 
-New-year data updates are proposed through PRs with old/new comparisons and source links. Official IRS-derived data with every federal tax bracket and deduction changing by at most 10% is **eligible for automatic squash merge in staging**, after source and data validation. Data from other sources, or larger changes, remains a draft PR for review.
+New-year data updates are proposed through PRs with old/new comparisons and source links. Official-source IRS changes within 10%, plus DQYDJ and WID changes within 25% per reference value, can **automatically squash-merge on staging** after validation. Untrusted, malformed or anomalous data is blocked or held as a draft PR.
 
 - New PRs mention `@mooyoungoh` in their description.
-- Auto-merged IRS PRs post a merge notification comment mentioning `@mooyoungoh`.
+- Auto-merged IRS, WID and DQYDJ PRs post a merge notification comment mentioning `@mooyoungoh`.
 - Manual merges of data-review PRs are handled by `.github/workflows/notify-data-merge.yml`, which posts a mention after merge.
 - PR and merge history remains available on GitHub. **No data PR ever auto-deploys to the production organization.**
 
