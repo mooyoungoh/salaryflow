@@ -1,2 +1,0 @@
-Salary Flow GitHub PR notification and auto-merge integration smoke test.
-No application, tax, or income data is changed by this file.
