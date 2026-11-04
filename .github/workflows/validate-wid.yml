@@ -1,0 +1,22 @@
+name: Validate WID ingestion
+on:
+  push:
+    paths:
+      - 'scripts/collect-wid.mjs'
+      - 'scripts/test-wid-collector.mjs'
+      - 'scripts/test-wid-live.mjs'
+      - '.github/workflows/validate-wid.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  wid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/test-wid-collector.mjs
+      - run: node scripts/test-wid-live.mjs
