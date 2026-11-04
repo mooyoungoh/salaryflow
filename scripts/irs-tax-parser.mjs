@@ -42,7 +42,7 @@ const headings=[
  {status:'mfs',name:/Married Individuals Filing Separate Returns/i}
 ];
 export function parseIrsBulletin(html,year,source){
- if(!/^https:\/\/www\.irs\.gov\/irb\/20\d\d-\d{2}_IRB(?:\?.*)?$/.test(source))throw Error('Must use an IRS Internal Revenue Bulletin URL');
+ if(!/^https:\/\/www\.irs\.gov\/irb\/20\d\d-\d{2}_IRB(?:\?.*)?$/i.test(source))throw Error('Must use an IRS Internal Revenue Bulletin URL');
  const lines=htmlToLines(html);
  const section=lines.findLastIndex(t=>new RegExp('SECTION\\s+4\\.\\s+'+year+'\\s+ADJUSTED ITEMS','i').test(t));
  if(section<0)throw Error('IRS bulletin does not contain requested tax year section');
