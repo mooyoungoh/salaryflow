@@ -4,6 +4,7 @@ on:
     paths:
       - scripts/collect-ssa-payroll.mjs
       - scripts/test-ssa-payroll.mjs
+      - scripts/test-ssa-pipeline.mjs
       - scripts/prepare-payroll-pr.mjs
       - data/payroll-2026.json
       - .github/workflows/validate-ssa-payroll.yml
@@ -20,4 +21,5 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/test-ssa-payroll.mjs
+      - run: node scripts/test-ssa-pipeline.mjs
       - run: node scripts/validate-data.mjs
