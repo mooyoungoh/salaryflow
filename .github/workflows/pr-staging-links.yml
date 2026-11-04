@@ -1,7 +1,7 @@
 name: Annotate data PR with staging review links
 on:
   workflow_run:
-    workflows: ['Find and propose new IRS tax tables', 'Extract IRS tax tables for review', 'Propose DQYDJ state income update', 'Propose WID income thresholds', 'Propose verified reference-data update']
+    workflows: ['Find and propose new IRS tax tables', 'Extract IRS tax tables for review', 'Propose DQYDJ state income update', 'Propose WID income thresholds', 'Propose verified reference-data update', 'Propose updated SSA payroll tax cap']
     types: [completed]
 permissions:
   pull-requests: write
