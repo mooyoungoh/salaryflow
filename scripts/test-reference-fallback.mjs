@@ -10,7 +10,7 @@ assert(first>0&&last>first,'Inline fallback is missing');
 const slice=html.slice(first,last);
 const exec=slice.slice(0,slice.indexOf('const REFERENCE_DATA=await loadReferenceData();'));
 const manifest=JSON.parse(readFileSync('data/manifest.json','utf8'));
-const files=Object.fromEntries(['tax','us','world','payroll'].map(k=>[manifest[k].path,JSON.parse(readFileSync(manifest[k].path,'utf8'))]));
+const files=Object.fromEntries(['tax','us','world','payroll','arizona'].map(k=>[manifest[k].path,JSON.parse(readFileSync(manifest[k].path,'utf8'))]));
 async function scenario(name,network,previousCache,expect){
  const saved=new Map();
  if(previousCache)saved.set('salary-flow-reference-last-good-v1',JSON.stringify(previousCache));
@@ -35,14 +35,16 @@ async function scenario(name,network,previousCache,expect){
  const actual=await context.runLoader();
  assert.deepEqual(JSON.parse(JSON.stringify(actual.years)),expect.years,name+' years mismatch');
  assert.deepEqual(JSON.parse(JSON.stringify(context.sources)),expect.sources,name+' source mismatch');
- assert(actual.tax.single.br.length===6&&actual.us.US.length===4&&actual.world.KR.points.length===6&&actual.payroll.socialSecurityWageBase===184500,name+' data incomplete');
+ assert(actual.tax.single.br.length===6&&actual.us.US.length===4&&actual.world.KR.points.length===6&&actual.payroll.socialSecurityWageBase===184500&&actual.arizona.standardDeduction.single===15750,name+' data incomplete');
  console.log('PASS '+name);
 }
-const baseline={years:{tax:2026,us:2026,usIncome:2025,world:2024,payroll:2026},sources:{tax:'default',us:'default',world:'default',payroll:'default'}};
+const baseline={years:{tax:2026,us:2026,usIncome:2025,world:2024,payroll:2026,arizona:2026},sources:{tax:'default',us:'default',world:'default',payroll:'default',arizona:'default'}};
 await scenario('all-json-and-manifest-down','all-down',null,baseline);
-await scenario('all-current-json-available',null,null,{years:baseline.years,sources:{tax:'live',us:'live',world:'live',payroll:'live'}});
+await scenario('all-current-json-available',null,null,{years:baseline.years,sources:{tax:'live',us:'live',world:'live',payroll:'live',arizona:'live'}});
 await scenario('world-json-broken','corrupt-world',null,{years:baseline.years,sources:{tax:'live',us:'live',world:'default',payroll:'live'}});
 await scenario('world-json-fails-but-cached-good',manifest.world.path,{world:files[manifest.world.path]},{years:baseline.years,sources:{tax:'live',us:'live',world:'cached',payroll:'live'}});
-await scenario('offline-but-saved-good','all-down',{tax:files[manifest.tax.path],us:files[manifest.us.path],world:files[manifest.world.path],payroll:files[manifest.payroll.path]},{years:baseline.years,sources:{tax:'cached',us:'cached',world:'cached',payroll:'cached'}});
+await scenario('offline-but-saved-good','all-down',{tax:files[manifest.tax.path],us:files[manifest.us.path],world:files[manifest.world.path],payroll:files[manifest.payroll.path],arizona:files[manifest.arizona.path]},{years:baseline.years,sources:{tax:'cached',us:'cached',world:'cached',payroll:'cached',arizona:'cached'}});
 
-await scenario('payroll-json-broken',manifest.payroll.path,null,{years:baseline.years,sources:{tax:'live',us:'live',world:'live',payroll:'default'}});
+await scenario('payroll-json-broken',manifest.payroll.path,null,{years:baseline.years,sources:{tax:'live',us:'live',world:'live',payroll:'default',arizona:'live'}});
+
+await scenario('arizona-json-broken',manifest.arizona.path,null,{years:baseline.years,sources:{tax:'live',us:'live',world:'live',payroll:'live',arizona:'default'}});
