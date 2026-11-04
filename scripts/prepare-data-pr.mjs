@@ -78,6 +78,8 @@ writeFileSync('data/manifest.json',JSON.stringify(mf,null,2)+'\n');
 const lines=[
  '# Salary Flow data review: '+kind+' '+year,
  '',
+ '@mooyoungoh — New reference-data PR. Please review the report below. GitHub email notifications depend on your notification settings.',
+ '',
  'Every candidate creates a PR and leaves a history trail. Passing numeric checks alone does not prove source accuracy.',
  '',
  '- Source: '+candidate.source,
