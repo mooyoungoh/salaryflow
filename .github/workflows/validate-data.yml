@@ -26,3 +26,5 @@ jobs:
         run: node scripts/validate-data.mjs
       - name: Test candidate PR preparation with synthetic data
         run: node scripts/test-data-pipeline.mjs
+      - name: Test IRS parser against known 2026 reference tables
+        run: node scripts/test-irs-parser.mjs
