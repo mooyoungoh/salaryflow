@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {extractCountryRows} from './collect-wid.mjs';
+const pct=['p25p100','p50p100','p75p100','p90p100','p95p100','p99p100'];
+const lines=['country;variable;percentile;year;value;age;pop;data_quality'];
+pct.forEach((p,i)=>lines.push('KR;tptinc992j;'+p+';2025;'+(10000*(i+1))+';992;j;4'));
+lines.push('KR;inyixx999i;p0p100;2025;1;999;i;');
+assert.deepEqual(extractCountryRows(lines.join('\n'),'KR',2025),[10000,20000,30000,40000,50000,60000]);
+assert.throws(()=>extractCountryRows(lines.filter(x=>!x.includes('p95p100')).join('\n'),'KR',2025),/Missing WID thresholds/);
+assert.throws(()=>extractCountryRows(lines.map(x=>x.includes('inyixx999i')?x.replace(';1;999',';1.05;999'):x).join('\n'),'KR',2025),/reference-year mismatch/);
+assert.throws(()=>extractCountryRows(lines.map(x=>x.replace('tptinc992j','sptinc992j')).join('\n'),'KR',2025),/Missing WID thresholds/);
+assert.throws(()=>extractCountryRows([...lines,lines[1]].join('\n'),'KR',2025),/Duplicate WID threshold/);
+console.log('PASS: WID strict CSV extraction and rejection tests');
