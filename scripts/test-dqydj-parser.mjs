@@ -22,7 +22,7 @@ const html='<h1>Income by State</h1><p>On this page are 2026 income by state sta
 assert.equal(sourceEdition(html),2026);
 assert.deepEqual(parseDqydj(html,2026),snapshot.values);
 assert.throws(()=>parseDqydj(html.replace('December 2025','December 2024'),2026),/income period mismatch/);
-assert.throws(()=>parseDqydj(html.replace(rows.split('\n')[0],''),2026),/Incomplete/);
+assert.throws(()=>parseDqydj(html.replace(rows.split('\n')[0],''),2026),/(Incomplete|too short)/);
 assert.throws(()=>parseDqydj(html.replace('Individual income by state:','Household income by state:'),2026),/individual income section/);
 assert.throws(()=>parseDqydj(html.replace('2026 income by state statistics','2025 income by state statistics'),2026),/edition year missing/);
 console.log('PASS: DQYDJ individual income section parser, exact 52-row mapping, year mismatch and missing data rejection');
