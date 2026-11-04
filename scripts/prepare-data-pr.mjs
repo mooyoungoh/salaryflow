@@ -56,6 +56,18 @@ if(kind==='tax'){
 const sorted=[...stats].sort((a,b)=>Math.abs(b.change)-Math.abs(a.change));
 const anomalous=sorted.filter(x=>Math.abs(x.change)>25);
 const unchanged=stats.filter(x=>x.change===0);
+// Automatic merge is deliberately restricted to machine-extracted official IRS tables.
+// DQYDJ and WID candidate statistics always require a human review, regardless of variation.
+const sourceIsOfficialIrs=kind==='tax'&&/^https:\/\/www\.irs\.gov\/irb\/20\d{2}-\d{2}_irb(?:\?.*)?$/i.test(candidate.source);
+const standardDeductionNormal=kind==='tax'&&Object.values(candidate.values).every(v=>v.ded>0);
+const maxAbsChange=sorted.length?Math.abs(sorted[0].change):Infinity;
+const maxAutoPercent=10;
+const autoSafe=sourceIsOfficialIrs&&standardDeductionNormal&&maxAbsChange<=maxAutoPercent&&unchanged.length!==stats.length;
+if(process.env.GITHUB_OUTPUT){
+ const {appendFileSync}=await import('node:fs');
+ appendFileSync(process.env.GITHUB_OUTPUT,'auto_safe='+(autoSafe?'true':'false')+'\n');
+}
+
 assert(unchanged.length!==stats.length,'Identical old and new values; candidate not a data update');
 const outputPath='data/'+(kind==='world'?'income-world-':kind==='us'?'income-us-':'tax-')+year+'.json';
 writeFileSync(outputPath,JSON.stringify(candidate,null,2)+'\n');
@@ -66,7 +78,7 @@ writeFileSync('data/manifest.json',JSON.stringify(mf,null,2)+'\n');
 const lines=[
  '# Salary Flow data review: '+kind+' '+year,
  '',
- 'This is a **review-required proposal**. Passing numeric checks does not prove source accuracy.',
+ 'Every candidate creates a PR and leaves a history trail. Passing numeric checks alone does not prove source accuracy.',
  '',
  '- Source: '+candidate.source,
  '- Retrieval method: '+candidate.retrieval,
@@ -75,6 +87,8 @@ const lines=[
  '- Compared values: '+stats.length,
  '- Values unchanged: '+unchanged.length,
  '- Changes above 25%: '+anomalous.length,
+ '- Maximum absolute change: '+maxAbsChange.toFixed(2)+'%',
+ '- Automatic merge decision: **'+(autoSafe?'ELIGIBLE (official IRS and <=10% per field)':'MANUAL REVIEW REQUIRED')+'**',
  '',
  '## Ten largest changes',
  '',
@@ -90,7 +104,8 @@ const lines=[
  '- [ ] Verify IRS tax year, filing status and deduction eligibility for taxes',
  '- [ ] Investigate all differences above 25%, including revisions to historical data',
  '- [ ] Verify tax take-home estimates and income rankings on the staging website',
- '- [ ] Merge only after confirmation. Production organization stays unchanged.',
+ '- [ ] Manual review required for WID, DQYDJ or changes beyond threshold; small official IRS changes may merge automatically on staging after CI.',
+ '- [ ] Production organization stays unchanged regardless of staging merge.',
  ''
 ];
 writeFileSync('data-review-report.md',lines.join('\n'));
