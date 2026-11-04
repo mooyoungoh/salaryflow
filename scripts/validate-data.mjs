@@ -32,6 +32,7 @@ for(const [code,v] of Object.entries(wid.values)){
 }
 assert.equal(payroll.schema,1);
 assert.equal(payroll.taxYear,mf.payroll.year);
+assert(mf.payroll.year<=mf.tax.year,'SSA payroll year cannot be ahead of active federal tax year');
 assert(payroll.socialSecurityWageBase>100000&&payroll.socialSecurityWageBase<500000,'Invalid SSA taxable maximum');
 assert.equal(payroll.socialSecurityRate,.062);
 assert.equal(payroll.medicareRate,.0145);
