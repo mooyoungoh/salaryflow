@@ -1,0 +1,21 @@
+name: Watch new tax and income data
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 14 8 * *'
+permissions:
+  contents: read
+  issues: write
+jobs:
+  check-releases:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Look for candidate releases and open review issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/monitor-data-releases.mjs
