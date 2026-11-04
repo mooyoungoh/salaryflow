@@ -2,10 +2,11 @@
 // GitHub Actions provides GITHUB_TOKEN, GITHUB_REPOSITORY, and this script uses GitHub's Issues API.
 import {readFileSync} from 'node:fs';
 const json=(f)=>JSON.parse(readFileSync(new URL('../'+f,import.meta.url),'utf8'));
+const manifest=json('data/manifest.json');
 const current={
- tax:json('data/tax-2026.json').taxYear,
- us:json('data/income-us-2026.json').editionYear,
- wid:json('data/income-world-2024.json').incomeYear
+ tax:manifest.tax.year,
+ us:manifest.us.year,
+ wid:manifest.world.year
 };
 const sources=[
  {id:'tax',label:'IRS federal income tax',url:'https://www.irs.gov/newsroom/working-families-tax-cuts-individuals-and-workers',
