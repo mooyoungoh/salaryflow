@@ -12,5 +12,9 @@
   "world": {
     "path": "data/income-world-2024.json",
     "year": 2024
+  },
+  "payroll": {
+    "path": "data/payroll-2026.json",
+    "year": 2026
   }
 }
