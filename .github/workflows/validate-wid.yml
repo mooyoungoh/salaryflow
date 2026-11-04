@@ -20,3 +20,5 @@ jobs:
           node-version: '22'
       - run: node scripts/test-wid-collector.mjs
       - run: node scripts/test-wid-live.mjs
+      - name: Ensure unpublished next-year data is skipped safely
+        run: node scripts/collect-wid.mjs
