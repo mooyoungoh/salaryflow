@@ -20,6 +20,7 @@ const ctx={
  ARIZONA_RULES:az,TAX2026:federal.values,PAYROLL_RULES:payroll,
  ZERO_WAGE_STATES:new Set(['AK','FL','NV','NH','SD','TN','TX','WA','WY']),
  num:(x,max=1e9)=>Math.max(0,Math.min(max,Number(x)||0)),
+ totalComp:j=>Number(j.gross||0)+Number(j.gross||0)*Number(j.aipPercent||0)/100+Number(j.extraBonus||0),
  config:{taxState:'AZ',filing:'single',jobs:[{gross:100000,aipPercent:0,extraBonus:0,pretax401:0}],outside:0,hsa:0,extraDeduction:0,azDeduction:15750},
  progressive:(amount,limits)=>{let total=0,prev=0;for(let i=0;i<7;i++){const rates=[.10,.12,.22,.24,.32,.35,.37];const upper=limits[i]??Infinity;total+=Math.max(0,Math.min(amount,upper)-prev)*rates[i];prev=upper;if(amount<=upper)break}return total}
 };
