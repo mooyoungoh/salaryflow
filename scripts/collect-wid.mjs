@@ -34,12 +34,20 @@ export function extractCountryRows(text,country,year){
    prices.push(n);
   }
  }
- assert.equal(points.size,6,'Missing WID thresholds '+country+': '+perc.filter(p=>!points.has(p)));
+ if(points.size===0){
+  const error=new Error('WID thresholds not published for '+country+' '+year);
+  error.code='WID_NOT_RELEASED';
+  throw error;
+ }
+ assert.equal(points.size,6,'Partial WID thresholds '+country+': '+perc.filter(p=>!points.has(p)));
  assert.equal(prices.length,1,'Missing/duplicate WID price index '+country+' '+year);
  // WID amounts are expressed in constant LCU of a database reference year. Only accept a year
  // whose index is 1, so thresholds can safely be interpreted in that year's nominal local currency.
- assert(Math.abs(prices[0]-1)<0.0001,'WID currency reference-year mismatch '+country+' '+year+' CPI index='+prices[0]);
- const arr=perc.map(p=>Math.round(points.get(p)));
+ assert(prices[0]>0.05&&prices[0]<5,'Implausible WID CPI index '+country+' '+year);
+ // WID thresholds use constant LCU in a reference-year price level. WID's
+ // price index is 1 for the reference year; multiplying by the index of
+ // the requested year converts them to nominal local-currency thresholds.
+ const arr=perc.map(p=>Math.round(points.get(p)*prices[0]));
  assert(arr.every((x,i)=>x>0&&(i===0||x>arr[i-1])),'Invalid WID percentile ordering '+country);
  return arr;
 }
@@ -51,7 +59,7 @@ export async function downloadCountry(country,year){
   if(!res.ok||!res.body)throw Error('WID CSV HTTP '+res.status+' for '+country);
   const lines=createInterface({input:Readable.fromWeb(res.body),crlfDelay:Infinity});
   let cols,byteCount=0;
-  const filtered=[];const diagnostics=[];const years=new Set();
+  const filtered=[];
   for await (const line of lines){
    byteCount+=Buffer.byteLength(line,'utf8');
    assert(byteCount<120*1024*1024,'WID country CSV too large: '+country);
@@ -63,33 +71,40 @@ export async function downloadCountry(country,year){
    }
    const v=line.split(';');
    if(v[cols.indexOf('country')]!==country)continue;
-   if(/tptinc|inyixx|ptinc992|ptincj992/i.test(v[cols.indexOf('variable')])){
-    years.add(v[cols.indexOf('year')]);
-    if(v[cols.indexOf('year')]===String(year)&&diagnostics.length<18)diagnostics.push(line.slice(0,140));
-   }
    if(v[cols.indexOf('year')]!==String(year))continue;
    const variable=v[cols.indexOf('variable')];
    if(variable!==varcode&&variable!==pricecode)continue;
    filtered.push(line);
   }
-  console.log('WID DIAGNOSTIC '+country+' candidate rows '+filtered.length+' matching years '+[...years].sort().slice(-7)+' samples '+JSON.stringify(diagnostics));
   return {values:extractCountryRows(filtered.join('\n'),country,year),source:url};
  }finally{clearTimeout(timeout)}
 }
 if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href){
  const next={};
+ let ready=true;
  for(const code of countries){
-  const res=await downloadCountry(code,target);
-  next[code]={...previous.values[code],points:res.values};
-  console.log(code+' '+target+': '+res.values.join(', '));
+  try{
+   const res=await downloadCountry(code,target);
+   next[code]={...previous.values[code],points:res.values};
+   console.log(code+' '+target+': '+res.values.join(', '));
+  }catch(error){
+   if(error.code!=='WID_NOT_RELEASED')throw error;
+   console.log(error.message+'; no data proposal will be generated');
+   ready=false;break;
+  }
+ }
+ if(!ready){
+  if(process.env.GITHUB_OUTPUT)writeFileSync(process.env.GITHUB_OUTPUT,'found=false\n',{flag:'a'});
+  process.exit(0);
  }
  const candidate={
   schema:1,incomeYear:target,source:'https://wid.world/data/',
-  retrieval:'WID official country bulk CSV; tptinc992j for equal-split adults aged 20+, p25/p50/p75/p90/p95/p99 lower thresholds; local currency with target-year price index inyixx999i=1; independently validate all nine countries',
+  retrieval:'WID official country bulk CSV; tptinc992j for equal-split adults aged 20+, p25/p50/p75/p90/p95/p99 thresholds; multiplied constant-price LCU thresholds by yearly WID price index inyixx999i to obtain nominal year LCU; all nine countries required',
   values:next
  };
  mkdirSync('candidates',{recursive:true});
  const dest='candidates/world-'+target+'.json';
  writeFileSync(dest,JSON.stringify(candidate,null,2)+'\n');
  console.log('WID candidate written for human review: '+dest);
+ if(process.env.GITHUB_OUTPUT)writeFileSync(process.env.GITHUB_OUTPUT,'found=true\n',{flag:'a'});
 }
