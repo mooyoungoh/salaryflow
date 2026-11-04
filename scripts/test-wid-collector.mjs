@@ -6,7 +6,7 @@ pct.forEach((p,i)=>lines.push('KR;tptinc992j;'+p+';2025;'+(10000*(i+1))+';992;j;
 lines.push('KR;inyixx999i;p0p100;2025;1;999;i;');
 assert.deepEqual(extractCountryRows(lines.join('\n'),'KR',2025),[10000,20000,30000,40000,50000,60000]);
 assert.deepEqual(extractCountryRows(lines.map(x=>x.includes('inyixx999i')?x.replace(';1;999',';0.9;999'):x).join('\n'),'KR',2025),[9000,18000,27000,36000,45000,54000]);
-assert.throws(()=>extractCountryRows(lines.filter(x=>!x.includes('p95p100')).join('\n'),'KR',2025),/Missing WID thresholds/);
+assert.throws(()=>extractCountryRows(lines.filter(x=>!x.includes('p95p100')).join('\n'),'KR',2025),/Partial WID thresholds/);
 assert.throws(()=>extractCountryRows(lines.map(x=>x.includes('inyixx999i')?x.replace(';1;999',';0;999'):x).join('\n'),'KR',2025),/Invalid CPI index/);
 assert.throws(()=>extractCountryRows(lines.map(x=>x.replace('tptinc992j','sptinc992j')).join('\n'),'KR',2025),/Missing WID thresholds/);
 assert.throws(()=>extractCountryRows([...lines,lines[1]].join('\n'),'KR',2025),/Duplicate WID threshold/);
