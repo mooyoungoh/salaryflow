@@ -61,12 +61,16 @@ export function parseIrsBulletin(html,year,source){
   if(i<3&&finish<0)throw Error('Cannot find table boundary');
   result[headings[i].status]={br:parseTaxRows(taxLines.slice(start+1,finish).filter(x=>!/^If Taxable Income Is/i.test(x)))};
  }
- const std=adjusted.slice(stdIndex+1,stdIndex+25);
+ const std=adjusted.slice(stdIndex+1,stdIndex+60);
  for(const {status,name} of headings){
-  const line=std.find(x=>name.test(x)&&/\$/.test(x));
-  if(!line)throw Error('Missing standard deduction for '+status);
-  const nums=getAmounts(line.split('|').slice(-1).join(' | '));
-  if(nums.length!==1)throw Error('Ambiguous standard deduction '+status);
+  const i=std.findIndex(x=>name.test(x));
+  if(i<0)throw Error('Missing standard deduction row for '+status+': '+JSON.stringify(std.slice(0,25)));
+  let nums=[];
+  for(let j=i;j<Math.min(i+5,std.length);j++){
+   nums=getAmounts(std[j]);
+   if(nums.length)break;
+  }
+  if(nums.length!==1)throw Error('Ambiguous standard deduction for '+status);
   result[status].ded=nums[0];
  }
  return {schema:1,taxYear:year,source,retrieval:'IRS Internal Revenue Bulletin section 4 tax rate tables and section 4.14 standard deductions; extracted with strict format validation',values:result};
