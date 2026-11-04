@@ -17,6 +17,9 @@ async function scenario(name,network,previousCache,expect){
  const context={
   localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},
   console:{warn:()=>{}},
+  AbortController,
+  setTimeout,
+  clearTimeout,
   fetch:async p=>{
    if(network==='all-down')throw Error('Network offline');
    if(p==='./data/manifest.json')return{ok:true,json:async()=>manifest};
