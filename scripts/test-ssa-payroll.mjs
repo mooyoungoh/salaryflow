@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {parseSSAFactsheet,officialPayroll} from './collect-ssa-payroll.mjs';
+const sample=year=>'<h1>'+year+' Cost-of-Living Adjustment</h1><h2>'+year+' SOCIAL SECURITY CHANGES</h2><p>The Social Security portion (OASDI) is 6.2 percent of earnings and the Medicare portion (HI) is 1.45 percent. High-income workers pay an additional 0.9 percent.</p><table><tr><th>Maximum Taxable Earnings</th></tr><tr><th>Social Security (OASDI only)</th><td>$184,500</td><td>$192,300</td></tr></table>';
+assert.equal(parseSSAFactsheet(sample(2027),2027),192300);
+assert.throws(()=>parseSSAFactsheet(sample(2027).replace('$192,300','garbage'),2027),/Missing SSA taxable earnings row|Implausible SSA/);
+assert.throws(()=>parseSSAFactsheet(sample(2027),2028),/Missing requested SSA year/);
+const live=await officialPayroll(2027);
+assert(live,'Expected released 2027 SSA fact sheet');
+assert.equal(live.socialSecurityWageBase,192300,'2027 SSA official wage maximum mismatch');
+assert.equal(live.socialSecurityRate,0.062);
+console.log('PASS: SSA official 2027 maximum '+live.socialSecurityWageBase);
