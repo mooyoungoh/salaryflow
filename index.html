@@ -110,18 +110,27 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 // Reference tables are public data fetched from this static GitHub Pages site.
 // A malformed or unavailable dataset stops calculations rather than silently showing inaccurate results.
 async function loadReferenceData(){
- const paths=['data/tax-2026.json','data/income-us-2026.json','data/income-world-2024.json'];
- const results=await Promise.all(paths.map(async path=>{
-  const res=await fetch('./'+path,{cache:'no-cache'});
-  if(!res.ok)throw new Error('Reference data HTTP '+res.status+': '+path);
+ const mfResp=await fetch('./data/manifest.json',{cache:'no-cache'});
+ if(!mfResp.ok)throw new Error('Reference manifest HTTP '+mfResp.status);
+ const manifest=await mfResp.json();
+ if(manifest.schema!==1)throw new Error('Unsupported reference manifest');
+ const keys=['tax','us','world'];
+ const entries=keys.map(k=>{
+  const v=manifest[k];
+  if(!v||!/^data\/[a-z0-9-]+\.json$/.test(v.path)||!Number.isInteger(v.year))throw new Error('Invalid manifest '+k);
+  return v;
+ });
+ const results=await Promise.all(entries.map(async entry=>{
+  const res=await fetch('./'+entry.path,{cache:'no-cache'});
+  if(!res.ok)throw new Error('Reference data HTTP '+res.status+': '+entry.path);
   return res.json();
  }));
  const [tax,us,world]=results;
  const rising=(a,n)=>Array.isArray(a)&&a.length===n&&a.every((v,i)=>Number.isFinite(v)&&v>0&&(i===0||v>a[i-1]));
- if(tax.schema!==1||tax.taxYear!==2026||!['single','mfj','hoh','mfs'].every(k=>tax.values&&Number.isFinite(tax.values[k]?.ded)&&rising(tax.values[k].br,6)))throw new Error('Invalid tax reference data');
- if(us.schema!==1||us.editionYear!==2026||!us.values||Object.keys(us.values).length!==52||!Object.values(us.values).every(a=>rising(a,4)))throw new Error('Invalid US income reference data');
- if(world.schema!==1||world.incomeYear!==2024||!world.values||Object.keys(world.values).length!==9||!Object.values(world.values).every(v=>v.name&&v.ko&&v.currency&&rising(v.points,6)))throw new Error('Invalid international income reference data');
- return {tax:tax.values,us:us.values,world:world.values};
+ if(tax.schema!==1||tax.taxYear!==manifest.tax.year||!['single','mfj','hoh','mfs'].every(k=>tax.values&&Number.isFinite(tax.values[k]?.ded)&&rising(tax.values[k].br,6)))throw new Error('Invalid tax reference data');
+ if(us.schema!==1||us.editionYear!==manifest.us.year||us.incomeYear!==manifest.us.incomeYear||!us.values||Object.keys(us.values).length!==52||!Object.values(us.values).every(a=>rising(a,4)))throw new Error('Invalid US income reference data');
+ if(world.schema!==1||world.incomeYear!==manifest.world.year||!world.values||Object.keys(world.values).length!==9||!Object.values(world.values).every(v=>v.name&&v.ko&&v.currency&&rising(v.points,6)))throw new Error('Invalid international income reference data');
+ return {tax:tax.values,us:us.values,world:world.values,years:{tax:tax.taxYear,us:us.editionYear,usIncome:us.incomeYear,world:world.incomeYear}};
 }
 let REFERENCE_DATA;
 try{REFERENCE_DATA=await loadReferenceData()}
@@ -246,7 +255,7 @@ function progressive(value,limits){const rates=[.10,.12,.22,.24,.32,.35,.37];let
 const annualBonus=j=>num(j.gross)*num(j.aipPercent,100)/100+num(j.extraBonus);
 const totalComp=j=>num(j.gross)+annualBonus(j);
 function taxEstimate(){const filing=TAX2026[config.filing]||TAX2026.single, gross=config.jobs.reduce((n,j)=>n+totalComp(j),0),other=num(config.outside),hsa=num(config.hsa),extra=num(config.extraDeduction),pretax401=config.jobs.reduce((n,j)=>n+num(j.pretax401),0);const totalPretax=Math.min(gross,hsa+extra+pretax401),outsideBase=Math.max(0,other-filing.ded),combinedBase=Math.max(0,other+gross-totalPretax-filing.ded);const federal=Math.max(0,progressive(combinedBase,filing.br)-progressive(outsideBase,filing.br));const azDed=num(config.azDeduction,100000),az=ZERO_WAGE_STATES.has(config.taxState)?0:Math.max(0,(Math.max(0,other+gross-totalPretax-azDed)-Math.max(0,other-azDed))*.025);const medicareBase=Math.max(0,gross-extra-hsa);const ss=Math.min(184500,Math.max(0,gross-extra-hsa))*.062;const med=medicareBase*.0145;const threshold=config.filing==='mfj'?250000:config.filing==='mfs'?125000:200000;const addMed=Math.max(0,(other+medicareBase)-threshold)*.009-Math.max(0,other-threshold)*.009;const fica=ss+med+Math.max(0,addMed);const net=Math.max(0,gross-totalPretax-federal-az-fica);return {gross,federal,az,fica,pretax:totalPretax,net,pct:gross?(gross-net)/gross*100:0}}
-function displayTax(){const state=TAX_STATES[config.taxState]||'Arizona';$('#stateTaxTitle').textContent=tr(state+' · 2026 세후 추정',state+' · 2026 take-home estimate');$('#stateTaxSubtitle').textContent='Federal + '+state+' + Social Security + Medicare';$('#stateTaxLabel').textContent=tr(state+' 추정',state+' estimate');$('#azDeductionField').hidden=ZERO_WAGE_STATES.has(config.taxState);$('#stateHelp').textContent=tr(config.taxState==='WA'?'Washington의 주 소득세는 0이지만 Paid Leave/WA Cares 등의 급여 공제는 포함되지 않습니다.':'Arizona 및 급여에 주 소득세가 없는 9개 주를 지원합니다. 지방세·기타 주별 급여 공제는 제외됩니다.',config.taxState==='WA'?'Washington has no wage income tax, but Paid Leave and WA Cares payroll premiums are not included.':'Arizona and nine no-wage-income-tax states are supported. Local taxes and other state payroll deductions are excluded.');const t=taxEstimate();$('#taxGross').textContent=money(t.gross);$('#taxFederal').textContent=money(t.federal);$('#taxAz').textContent=money(t.az);$('#taxFica').textContent=money(t.fica);$('#taxNet').textContent=money(t.net);$('#taxPct').textContent=t.pct.toFixed(1)+'%'}
+function displayTax(){const state=TAX_STATES[config.taxState]||'Arizona';$('#stateTaxTitle').textContent=tr(state+' · '+REFERENCE_DATA.years.tax+' 세후 추정',state+' · '+REFERENCE_DATA.years.tax+' take-home estimate');$('#stateTaxSubtitle').textContent='Federal + '+state+' + Social Security + Medicare';$('#stateTaxLabel').textContent=tr(state+' 추정',state+' estimate');$('#azDeductionField').hidden=ZERO_WAGE_STATES.has(config.taxState);$('#stateHelp').textContent=tr(config.taxState==='WA'?'Washington의 주 소득세는 0이지만 Paid Leave/WA Cares 등의 급여 공제는 포함되지 않습니다.':'Arizona 및 급여에 주 소득세가 없는 9개 주를 지원합니다. 지방세·기타 주별 급여 공제는 제외됩니다.',config.taxState==='WA'?'Washington has no wage income tax, but Paid Leave and WA Cares payroll premiums are not included.':'Arizona and nine no-wage-income-tax states are supported. Local taxes and other state payroll deductions are excluded.');const t=taxEstimate();$('#taxGross').textContent=money(t.gross);$('#taxFederal').textContent=money(t.federal);$('#taxAz').textContent=money(t.az);$('#taxFica').textContent=money(t.fica);$('#taxNet').textContent=money(t.net);$('#taxPct').textContent=t.pct.toFixed(1)+'%'}
 const payPeriods=j=>({weekly:52,biweekly:26,semimonthly:24,monthly:12}[j.frequency]||26);
 function estimatedAnnualNet(j){const t=taxEstimate();return t.gross>0?t.net*totalComp(j)/t.gross:0}
 function estimatedBonusNet(j){return totalComp(j)>0?estimatedAnnualNet(j)*annualBonus(j)/totalComp(j):0}
@@ -344,9 +353,9 @@ function renderCountryRank(){
  const formatRank=(value,points,percentage)=>value<points[0]?tr('상위 75% 밖','Below P25'):value>=points[5]?tr('상위 1% 이내','Top 1%+'):tr('상위 약 ','Top ~')+percentage.toFixed(1)+'%';
  const formatMoney=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:rec.currency,maximumFractionDigits:0}).format(v);
  $('#intlTitle').textContent=tr('국가별 소득 상위 % 비교','Country income percentile comparison');
- $('#intlYear').textContent=tr('2024년 WID 자료','WID income data · 2024');
+ $('#intlYear').textContent=tr(REFERENCE_DATA.years.world+'년 WID 자료','WID income data · '+REFERENCE_DATA.years.world);
  $('#intlCountryLabel').textContent=tr('비교할 국가','Country');
- $('#intlUSLabel').textContent=tr('미국 소득 상위 비율 · WID 2024','United States income rank · WID 2024');
+ $('#intlUSLabel').textContent=tr('미국 소득 상위 비율 · WID '+REFERENCE_DATA.years.world,'United States income rank · WID '+REFERENCE_DATA.years.world);
  $('#intlRankLabel').textContent=tr(label+' 소득 상위 비율',label+' income rank');
  $('#intlIncomeLabel').textContent=tr('현지 통화로 환산한 연봉','Annual income in local currency');
  $('#intlMedianLabel').textContent=tr('현지 소득 중앙값','Local income median');
@@ -382,8 +391,8 @@ function renderRankings(){
  $('#rankHomeMedian').textContent=tr('중앙값: ','Median: ')+(hiddenRank?'••••':money(INCOME_RANK_2026[home][1]));
  $('#rankCompareMedian').textContent=tr('중앙값: ','Median: ')+(hiddenRank?'••••':money(INCOME_RANK_2026[comparison][1]));
  $('#rankIncomeNote').textContent=tr('비교 연소득: ','Compared annual income: ')+(hiddenRank?'••••':money(gross));
- $('#rankTitle').textContent=tr('내 소득은 상위 몇 %?','What income percentile am I in?');
- $('#rankDataYear').textContent=tr('2026 발표 · 2025년 개인 소득 자료 · 세전 기준','2026 edition · 2025 personal income · pre-tax');
+ $('#rankTitle').textContent=tr('내 소득은 상위 몇 %?','What income percentile am I in?');const rankKicker=document.querySelector('.rank-kicker');if(rankKicker)rankKicker.textContent='INCOME RANK · '+REFERENCE_DATA.years.us;
+ $('#rankDataYear').textContent=tr(REFERENCE_DATA.years.us+' 발표 · '+REFERENCE_DATA.years.usIncome+'년 개인 소득 자료 · 세전 기준',REFERENCE_DATA.years.us+' edition · '+REFERENCE_DATA.years.usIncome+' personal income · pre-tax');
  $('#rankUsLabel').textContent=tr('미국 전체','United States');
  $('#rankCompareLabel').textContent=tr('비교할 주','Compare another state');
  $('#rankAccuracy').textContent=tr('25·50·75·99백분위 기준점 사이의 근사값 · 정확한 순위 아님','Approximation between P25/P50/P75/P99 · not an exact rank');
