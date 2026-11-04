@@ -30,7 +30,8 @@ Repository **Settings → Actions → General → Workflow permissions** must al
 
 ## Unfinished
 
-- US income percentile and WID automatic numeric collection (the existing monitor only detects possible announcements).
+- US (DQYDJ) income percentile automatic numeric collection.
+- WID numerical collection exists, but remains review-only: verify source methodology, source revisions, and nominal local-currency calculations before merging the drafted PR. Automated merge for WID is disabled.
 - Tax logic outside the versioned federal brackets, including state taxes and other embedded yearly assumptions.
 - Real end-to-end automated PR creation and merge test; synthetic validation is not a substitute.
 - Browser regression comparison of next-year data before promoting it to production.
