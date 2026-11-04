@@ -123,10 +123,16 @@ function baselineEntry(k){
  const data=REFERENCE_BASELINE[k];
  return {path:'data/'+(k==='tax'?'tax-2026':k==='us'?'income-us-2026':'income-world-2024')+'.json',year:k==='tax'?2026:k==='us'?2026:2024,...(k==='us'?{incomeYear:2025}:{})};
 }
+async function fetchReference(url){
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),8000);
+ try{return await fetch(url,{cache:'no-cache',signal:controller.signal})}
+ finally{clearTimeout(timeout)}
+}
 async function loadReferenceData(){
  let manifest;
  try{
-  const response=await fetch('./data/manifest.json',{cache:'no-cache'});
+  const response=await fetchReference('./data/manifest.json');
   if(!response.ok)throw Error('Manifest HTTP '+response.status);
   manifest=await response.json();
   if(manifest.schema!==1)throw Error('Manifest version');
@@ -141,7 +147,7 @@ async function loadReferenceData(){
   let value;
   if(validPath){
    try{
-    const response=await fetch('./'+entry.path,{cache:'no-cache'});
+    const response=await fetchReference('./'+entry.path);
     if(!response.ok)throw Error('Dataset HTTP '+response.status);
     const candidate=await response.json();
     if(!referenceValid(k,candidate,entry))throw Error('Invalid dataset '+k);
