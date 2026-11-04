@@ -15,13 +15,19 @@ export function htmlToLines(html){
 const getAmounts=t=>[...t.matchAll(/\$\s*([0-9][0-9,]*)/g)].map(x=>Number(x[1].replace(/,/g,'')));
 function parseTaxRows(lines){
  const result=[];
- for(const line of lines){
+ for(let i=0;i<lines.length;i++){
+  const line=lines[i];
   if(!/^(?:Not over|Over )\s*\$/i.test(line))continue;
+  let combined=line;
+  for(let j=i+1;j<Math.min(i+7,lines.length);j++){
+   if(/\b(10|12|22|24|32|35|37)%/.test(combined)||/^(?:Not over|Over )\s*\$/i.test(lines[j]))break;
+   combined+=' '+lines[j];
+  }
   const amounts=getAmounts(line.split('|')[0]);
   if(!amounts.length)throw Error('IRS tax row has no monetary boundaries: '+line);
-  const r=(line.match(/\b(10|12|22|24|32|35|37)%/));
-  if(!r)throw Error('IRS tax rate missing: '+line);
-  result.push({upper:amounts.length===1&&/^Not over/i.test(line)?amounts[0]:amounts.at(-1),rate:Number(r[1])});
+  const rate=combined.match(/\b(10|12|22|24|32|35|37)%/);
+  if(!rate)throw Error('IRS tax rate missing: '+combined);
+  result.push({upper:amounts.at(-1),rate:Number(rate[1])});
  }
  if(result.length!==7)throw Error('Expected exactly seven IRS tax rate rows, found '+result.length);
  const expected=[10,12,22,24,32,35,37];
