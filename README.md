@@ -16,6 +16,14 @@ Production is maintained separately at https://salaryflow.github.io/. **Do not c
 - `node scripts/collect-dqydj.mjs` parses the official DQYDJ *individual*, not household, income summary table for all 50 states and DC, plus US national percentiles. It verifies the income year, edition year and four thresholds against the active dataset.
 - `node scripts/test-dqydj-parser.mjs` and `.github/workflows/validate-dqydj.yml` test the parser with synthetic tables and the official live source.
 
+## Browser reference-data recovery
+
+- The 2026 IRS, 2026 edition / 2025 income US, and 2024 WID datasets are embedded directly in `index.html` as a **permanent baseline**, independent of JSON and the manifest.
+- On startup, each data type independently tries the active JSON (8-second timeout), validates its structure, and saves validated results to localStorage.
+- If a manifest or data file is unavailable, malformed or stale, the UI uses the last validated browser cache, otherwise its embedded fixed baseline. The salary counter remains operational; a small banner explains that reference statistics may be outdated.
+- This fallback is deliberately not live data; it protects availability, not tax estimates against law changes. The production organization is unchanged until reviewed deployment.
+- `node scripts/test-reference-fallback.mjs` tests offline/corrupted/missing dataset cases and cached-recovery behavior.
+
 ## Pull requests and email notifications
 
 New-year data updates are proposed through PRs with old/new comparisons and source links. Official IRS-derived data with every federal tax bracket and deduction changing by at most 10% is **eligible for automatic squash merge in staging**, after source and data validation. Data from other sources, or larger changes, remains a draft PR for review.
@@ -33,9 +41,9 @@ Repository **Settings → Actions → General → Workflow permissions** must al
 
 ## Unfinished
 
-- DQYDJ collection and WID collection are both scheduled monthly and propose **draft PRs only** when a complete newer edition is available. Human approval remains required. Test the first actual release-triggered PR before relying on it.
+- DQYDJ and WID collectors run monthly and open PRs for complete newer editions. Valid official-source deltas within 25% per reference value can auto-merge on staging, otherwise a draft PR remains. Test the first real release-triggered PR before relying on it.
 - DQYDJ may revise a current-edition source in place; the collector explicitly errors on an unexpected revision, rather than silently replacing data.
-- For WID, verify methodology, source revisions, and nominal local-currency calculations before approving any candidate.
+- WID methodology, source revisions and nominal local-currency conversions remain potential accuracy risks; the 25% threshold and structural checks cannot independently prove the source definitions are unchanged.
 - Tax logic outside the versioned federal brackets, including state taxes and other embedded yearly assumptions.
 - IRS auto-merge was smoke-tested with an isolated no-data PR (#1); the complete future IRS, DQYDJ and WID data-release paths have not yet been end-to-end tested.
 - Browser regression comparison of next-year data before promoting it to production.
