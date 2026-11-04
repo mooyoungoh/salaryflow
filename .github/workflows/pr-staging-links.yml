@@ -1,0 +1,27 @@
+name: Annotate data PR with staging review links
+on:
+  workflow_run:
+    workflows: ['Find and propose new IRS tax tables', 'Extract IRS tax tables for review', 'Propose DQYDJ state income update', 'Propose WID income thresholds', 'Propose verified reference-data update']
+    types: [completed]
+permissions:
+  pull-requests: write
+  issues: write
+jobs:
+  comment:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add staging and PR review links
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_CREATED: ${{ github.event.workflow_run.created_at }}
+        run: |
+          gh api "repos/$GH_REPO/pulls?state=all&sort=created&direction=desc&per_page=20" --jq '.[] | select(.user.login == "github-actions[bot]") | [.number,.created_at,.title] | @tsv' | while IFS="$(printf '\t')" read -r num created title; do
+            case "$title" in
+              *"[Data review]"*|*"[IRS tax review]"*) ;;
+              *) continue ;;
+            esac
+            [ "$(date -u -d "$created" +%s)" -ge "$(date -u -d "$RUN_CREATED" +%s)" ] || continue
+            gh pr comment "$num" --body "@mooyoungoh — [Staging website](https://mooyoungoh.github.io/salaryflow/) | [PR changes](https://github.com/$GH_REPO/pull/$num/files) | [Checks](https://github.com/$GH_REPO/pull/$num/checks). Staging serves main; PR data appears on the site only after merge and deployment. Review the Files changed tab before merge."
+          done
