@@ -34,7 +34,7 @@ export function parseDqydj(html,edition){
  assert(Number.isInteger(edition)&&edition>=2026,'Invalid edition year');
  const plain=clean(html);
  assert(new RegExp('\\b'+edition+' income by state statistics\\b','i').test(plain),'DQYDJ edition year missing');
- assert(new RegExp('January\\s+(?:to|through|–|-)\\s+December\\s+'+(edition-1),'i').test(plain),'DQYDJ income period mismatch');
+ assert(new RegExp('January\\s+(?:and|to|through|–|-)\\s+December\\s+'+(edition-1),'i').test(plain),'DQYDJ income period mismatch');
  const headers=[...html.matchAll(/<h[2-4]\b[^>]*>([\s\S]*?)<\/h[2-4]>/gi)];
  const header=headers.find(x=>/^Individual income by state:/i.test(clean(x[1])));
  assert(header,'DQYDJ individual income section not found');
