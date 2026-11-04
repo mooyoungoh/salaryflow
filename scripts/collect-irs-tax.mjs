@@ -8,7 +8,7 @@ const year=Number(yearString);
 assert(Number.isInteger(year)&&year>=2026&&year<=2100,'Expected supported tax year');
 const manifest=JSON.parse(readFileSync(new URL('../data/manifest.json',import.meta.url)));
 assert(year>manifest.tax.year,'Only newer tax years may be proposed');
-if(!/^https:\/\/www\.irs\.gov\/irb\/20\d\d-\d{2}_IRB(?:\?.*)?$/.test(url||''))throw Error('Only official IRS Revenue Bulletin URLs are accepted');
+if(!/^https:\/\/www\.irs\.gov\/irb\/20\d\d-\d{2}_IRB(?:\?.*)?$/i.test(url||''))throw Error('Only official IRS Revenue Bulletin URLs are accepted');
 const controller=new AbortController();
 const timeout=setTimeout(()=>controller.abort(),30000);
 let response;
