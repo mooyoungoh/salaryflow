@@ -16,9 +16,17 @@ Production is maintained separately at https://salaryflow.github.io/. **Do not c
 - `node scripts/collect-dqydj.mjs` parses the official DQYDJ *individual*, not household, income summary table for all 50 states and DC, plus US national percentiles. It verifies the income year, edition year and four thresholds against the active dataset.
 - `node scripts/test-dqydj-parser.mjs` and `.github/workflows/validate-dqydj.yml` test the parser with synthetic tables and the official live source.
 
+## SSA Social Security / Medicare constants
+
+- The payroll estimate previously hardcoded the 2026 Social Security wage cap ($184,500) and employee payroll tax rates. They now load from `data/payroll-2026.json`, referenced by `data/manifest.json`.
+- SSA 2026 payroll figures are embedded in the HTML alongside the 2026 IRS, 2026 US income and 2024 WID safety baselines. Missing or invalid payroll JSON is recovered independently from cached data or the built-in baseline.
+- The official SSA 2027 cost-of-living factsheet confirms the next wage cap of $192,300. Its parser and candidate preparation are tested in `scripts/test-ssa-payroll.mjs` and `scripts/test-ssa-pipeline.mjs`.
+- The `Propose updated SSA payroll tax cap` monthly workflow checks whether the **active IRS tax year has advanced**. Until then, the displayed payroll calculation retains 2026 values; it cannot adopt the 2027 limit prematurely. On a matching year, an official change within 15% can automatically create and squash-merge a staging PR with notification.
+- Arizona's manually configurable state deduction remains unchanged. Other state-tax models are not inferred or silently enabled.
+
 ## Browser reference-data recovery
 
-- The 2026 IRS, 2026 edition / 2025 income US, and 2024 WID datasets are embedded directly in `index.html` as a **permanent baseline**, independent of JSON and the manifest.
+- The 2026 IRS, 2026 payroll tax, 2026 edition / 2025 income US, and 2024 WID datasets are embedded directly in `index.html` as a **permanent baseline**, independent of JSON and the manifest.
 - On startup, each data type independently tries the active JSON (8-second timeout), validates its structure, and saves validated results to localStorage.
 - If a manifest or data file is unavailable, malformed or stale, the UI uses the last validated browser cache, otherwise its embedded fixed baseline. The salary counter remains operational; a small banner explains that reference statistics may be outdated.
 - This fallback is deliberately not live data; it protects availability, not tax estimates against law changes. The production organization is unchanged until reviewed deployment.
