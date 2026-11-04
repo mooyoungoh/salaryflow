@@ -1,0 +1,23 @@
+name: Validate SSA payroll rules
+on:
+  push:
+    paths:
+      - scripts/collect-ssa-payroll.mjs
+      - scripts/test-ssa-payroll.mjs
+      - scripts/prepare-payroll-pr.mjs
+      - data/payroll-2026.json
+      - .github/workflows/validate-ssa-payroll.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/test-ssa-payroll.mjs
+      - run: node scripts/validate-data.mjs
