@@ -1,0 +1,50 @@
+name: Propose updated SSA payroll tax cap
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '21 14 20 * *'
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Collect official SSA cap for active tax year
+        id: scan
+        run: node scripts/collect-ssa-payroll.mjs
+      - name: Prepare versioned payroll change
+        if: steps.scan.outputs.found == 'true'
+        id: proposal
+        run: node scripts/prepare-payroll-pr.mjs "${{ steps.scan.outputs.year }}"
+      - name: Validate proposed payroll data
+        if: steps.scan.outputs.found == 'true'
+        run: node scripts/validate-data.mjs
+      - name: Open PR with change report
+        if: steps.scan.outputs.found == 'true'
+        id: pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'Propose SSA payroll cap for active tax year'
+          branch: data-review/ssa-payroll-next-year
+          base: main
+          title: '[Data review] SSA payroll tax cap update'
+          body-path: data-review-report.md
+          draft: ${{ steps.proposal.outputs.auto_safe != 'true' }}
+          add-paths: |
+            data/*.json
+            data-review-report.md
+      - name: Auto-merge verified official SSA change on staging
+        if: steps.proposal.outputs.auto_safe == 'true' && steps.pr.outputs.pull-request-url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+        run: |
+          gh pr merge "$PR_URL" --squash --delete-branch
+          gh pr comment "$PR_URL" --body "@mooyoungoh — SSA payroll tax reference auto-merged. Staging: https://mooyoungoh.github.io/salaryflow/ | PR: $PR_URL"
