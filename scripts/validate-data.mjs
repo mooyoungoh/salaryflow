@@ -4,12 +4,12 @@ import {readFileSync} from 'node:fs';
 const load=p=>JSON.parse(readFileSync(new URL('../'+p,import.meta.url),'utf8'));
 const mf=load('data/manifest.json');
 assert.equal(mf.schema,1);
-const types=['tax','us','world'];
+const types=['tax','us','world','payroll'];
 for(const type of types){
  assert(mf[type]&&/^data\/[a-z0-9-]+\.json$/.test(mf[type].path), 'Bad manifest path: '+type);
  assert(Number.isInteger(mf[type].year),'Bad dataset year: '+type);
 }
-const tax=load(mf.tax.path),us=load(mf.us.path),wid=load(mf.world.path);
+const tax=load(mf.tax.path),us=load(mf.us.path),wid=load(mf.world.path),payroll=load(mf.payroll.path);
 const rising=(a,n)=>Array.isArray(a)&&a.length===n&&a.every((v,i)=>Number.isFinite(v)&&v>0&&(i===0||v>a[i-1]));
 assert.equal(tax.schema,1);
 assert.equal(tax.taxYear,mf.tax.year);
@@ -30,6 +30,14 @@ for(const [code,v] of Object.entries(wid.values)){
  assert(v.name&&v.ko&&/^[A-Z]{3}$/.test(v.currency),'Invalid country metadata: '+code);
  assert(rising(v.points,6),'Invalid WID percentile thresholds: '+code);
 }
+assert.equal(payroll.schema,1);
+assert.equal(payroll.taxYear,mf.payroll.year);
+assert(payroll.socialSecurityWageBase>100000&&payroll.socialSecurityWageBase<500000,'Invalid SSA taxable maximum');
+assert.equal(payroll.socialSecurityRate,.062);
+assert.equal(payroll.medicareRate,.0145);
+assert.equal(payroll.additionalMedicareRate,.009);
+assert.deepEqual(payroll.additionalMedicareThresholds,{single:200000,mfj:250000,mfs:125000,hoh:200000});
+if(payroll.taxYear===2026)assert.equal(payroll.socialSecurityWageBase,184500,'2026 SSA baseline mismatch');
 const federal=(taxable,limits)=>{
  const rates=[.10,.12,.22,.24,.32,.35,.37];
  let result=0,prev=0;
