@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "tax": {
+    "path": "data/tax-2026.json",
+    "year": 2026
+  },
+  "us": {
+    "path": "data/income-us-2026.json",
+    "year": 2026,
+    "incomeYear": 2025
+  },
+  "world": {
+    "path": "data/income-world-2024.json",
+    "year": 2024
+  }
+}
