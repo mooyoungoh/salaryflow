@@ -11,7 +11,9 @@ const copy=(from,to)=>{
  mkdirSync(dest.slice(0,dest.lastIndexOf('/')),{recursive:true});
  copyFileSync(new URL(from,base),dest);
 };
-const run=()=>spawnSync(process.execPath,['scripts/prepare-data-pr.mjs','tax','2027'],{cwd:root,encoding:'utf8'});
+const output=join(root,'decision.txt');
+const run=()=>{writeFileSync(output,'');return spawnSync(process.execPath,['scripts/prepare-data-pr.mjs','tax','2027'],{cwd:root,encoding:'utf8',env:{...process.env,GITHUB_OUTPUT:output}})};
+const decision=()=>readFileSync(output,'utf8').trim();
 try{
  copy('scripts/prepare-data-pr.mjs','scripts/prepare-data-pr.mjs');
  copy('data/manifest.json','data/manifest.json');
@@ -21,7 +23,7 @@ try{
  const target=join(root,'candidates/tax-2027.json');
  const candidate=structuredClone(tax);
  candidate.taxYear=2027;
- candidate.source='https://www.irs.gov/';
+ candidate.source='https://www.irs.gov/irb/2026-45_IRB';
  candidate.retrieval='TEST ONLY: synthetic +2% thresholds, not real IRS values';
  for(const v of Object.values(candidate.values)){
   v.ded=Math.round(v.ded*1.02);
@@ -35,6 +37,20 @@ try{
  assert.equal(manifest.tax.year,2027);
  assert.equal(manifest.tax.path,'data/tax-2027.json');
  assert(readFileSync(join(root,'data-review-report.md'),'utf8').includes('largest changes'));
+ assert.equal(decision(),'auto_safe=true','Small official IRS change must be auto-eligible');
+ copy('data/manifest.json','data/manifest.json');
+ candidate.values.single.br[0]=Math.round(tax.values.single.br[0]*1.20);
+ writeFileSync(target,JSON.stringify(candidate));
+ result=run();
+ assert.equal(result.status,0,result.stderr||result.stdout);
+ assert.equal(decision(),'auto_safe=false','Large IRS change must require manual review');
+ copy('data/manifest.json','data/manifest.json');
+ candidate.values.single.br[0]=Math.round(tax.values.single.br[0]*1.02);
+ candidate.source='https://some-unverified-domain.example/irs';
+ writeFileSync(target,JSON.stringify(candidate));
+ result=run();
+ assert.equal(result.status,0,result.stderr||result.stdout);
+ assert.equal(decision(),'auto_safe=false','Non-IRS sources must require manual review');
  // Malformed proposal should fail before modifying the published reference manifest.
  copy('data/manifest.json','data/manifest.json');
  candidate.values.single.br=[1,2,3];
@@ -43,5 +59,6 @@ try{
  assert.notEqual(result.status,0,'Malformed candidate must be rejected');
  assert.equal(JSON.parse(readFileSync(join(root,'data/manifest.json'))).tax.year,2026);
  console.log('PASS: synthetic candidate generates versioned JSON and review report');
+ console.log('PASS: small official IRS changes auto-eligible, large/unverified changes manual');
  console.log('PASS: malformed candidate rejected without manifest changes');
 }finally{rmSync(root,{recursive:true,force:true})}
