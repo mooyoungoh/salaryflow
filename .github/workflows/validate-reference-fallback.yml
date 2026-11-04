@@ -4,6 +4,8 @@ on:
     paths:
       - index.html
       - scripts/test-reference-fallback.mjs
+      - scripts/test-arizona-tax.mjs
+      - data/arizona-2026.json
       - .github/workflows/validate-reference-fallback.yml
   workflow_dispatch:
 permissions:
@@ -18,3 +20,4 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/test-reference-fallback.mjs
+      - run: node scripts/test-arizona-tax.mjs
