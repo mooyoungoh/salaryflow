@@ -28,6 +28,7 @@ function parseTaxRows(lines){
   const rate=combined.match(/\b(10|12|22|24|32|35|37)%/);
   if(!rate)throw Error('IRS tax rate missing: '+combined);
   result.push({upper:amounts.at(-1),rate:Number(rate[1])});
+  if(result.length===7)break;
  }
  if(result.length!==7)throw Error('Expected seven IRS rate rows, found '+result.length+': '+JSON.stringify(result)+' | '+JSON.stringify(lines.filter(x=>/^(Not over|Over )/.test(x)).slice(0,18)));
  const expected=[10,12,22,24,32,35,37];
