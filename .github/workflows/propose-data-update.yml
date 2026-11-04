@@ -1,0 +1,52 @@
+name: Propose verified reference-data update
+on:
+  workflow_dispatch:
+    inputs:
+      dataset:
+        description: Dataset with a checked candidates/<dataset>-<year>.json file
+        required: true
+        type: choice
+        options:
+          - tax
+          - us
+          - world
+      year:
+        description: Data edition year (e.g. 2027)
+        required: true
+        type: string
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  prepare-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare draft dataset and review report
+        env:
+          DATA_KIND: ${{ inputs.dataset }}
+          DATA_YEAR: ${{ inputs.year }}
+        run: node scripts/prepare-data-pr.mjs "$DATA_KIND" "$DATA_YEAR"
+      - name: Verify candidate and manifest
+        run: node scripts/validate-data.mjs
+      - name: Open draft review PR (never merge automatically)
+        id: pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Propose ${{ inputs.dataset }} ${{ inputs.year }} reference data"
+          branch: "data-review/${{ inputs.dataset }}-${{ inputs.year }}"
+          base: main
+          title: "[Data review] ${{ inputs.dataset }} ${{ inputs.year }} candidate"
+          body-path: data-review-report.md
+          draft: true
+          add-paths: |
+            data/*.json
+            data-review-report.md
+      - name: Print review link
+        if: steps.pr.outputs.pull-request-url != ''
+        run: echo "${{ steps.pr.outputs.pull-request-url }}"
