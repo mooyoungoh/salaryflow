@@ -28,3 +28,5 @@ jobs:
         run: node scripts/test-data-pipeline.mjs
       - name: Test IRS parser against known 2026 reference tables
         run: node scripts/test-irs-parser.mjs
+      - name: Compare live IRS bulletin to saved 2026 reference
+        run: node scripts/test-irs-live.mjs
