@@ -1,0 +1,42 @@
+name: Find and propose new IRS tax tables
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '47 15 12 * *'
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Discover next tax year's official IRS bulletin
+        id: scan
+        run: node scripts/discover-irs-tax.mjs
+      - name: Generate candidate data and review report
+        if: steps.scan.outputs.found == 'true'
+        run: |
+          YEAR=$(node -p "require('./data/manifest.json').tax.year+1")
+          node scripts/prepare-data-pr.mjs tax "$YEAR"
+      - name: Validate proposed dataset
+        if: steps.scan.outputs.found == 'true'
+        run: node scripts/validate-data.mjs
+      - name: Open draft PR, never auto-merge
+        if: steps.scan.outputs.found == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Propose new IRS tax year from official bulletin"
+          branch: "data-review/irs-next-tax-year"
+          base: main
+          title: "[IRS tax review] New annual tax brackets and deductions"
+          body-path: data-review-report.md
+          draft: true
+          add-paths: |
+            data/*.json
+            data-review-report.md
