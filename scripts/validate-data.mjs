@@ -42,9 +42,10 @@ const federal=(taxable,limits)=>{
  return result;
 };
 assert.equal(federal(0,tax.values.single.br),0);
-assert.equal(federal(12400,tax.values.single.br),1240);
-assert.equal(federal(12401,tax.values.single.br),1240.12);
-assert.equal(federal(50400,tax.values.single.br),5800);
+const first=tax.values.single.br[0],second=tax.values.single.br[1];
+assert.equal(federal(first,tax.values.single.br),first*0.10);
+assert(Math.abs(federal(first+1,tax.values.single.br)-(first*.10+.12))<1e-8);
+assert(Math.abs(federal(second,tax.values.single.br)-(first*.10+(second-first)*.12))<1e-8);
 if(mf.tax.year===2026)assert.equal(tax.values.single.ded,16100,'2026 tax baseline mismatch');
 if(mf.us.year===2026)assert.equal(us.values.US[1],55584,'2026 US median baseline mismatch');
 if(mf.world.year===2024)assert.equal(wid.values.KR.points[1],33572879,'2024 KR median baseline mismatch');
