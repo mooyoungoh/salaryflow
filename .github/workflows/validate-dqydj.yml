@@ -1,0 +1,23 @@
+name: Validate DQYDJ income table
+on:
+  push:
+    paths:
+      - 'scripts/collect-dqydj.mjs'
+      - 'scripts/test-dqydj-parser.mjs'
+      - '.github/workflows/validate-dqydj.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-dqydj:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test DQYDJ table and snapshot guards
+        run: node scripts/test-dqydj-parser.mjs
+      - name: Compare live official 2026 DQYDJ page to saved reference
+        run: node scripts/collect-dqydj.mjs
