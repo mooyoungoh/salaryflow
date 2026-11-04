@@ -1,0 +1,44 @@
+// Isolated test for SSA payroll PR preparation. Never alters repository datasets.
+import assert from 'node:assert/strict';
+import {mkdtempSync,mkdirSync,copyFileSync,readFileSync,writeFileSync,existsSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {spawnSync} from 'node:child_process';
+const root=mkdtempSync(join(tmpdir(),'salaryflow-ssa-review-'));
+const put=(source,dest)=>{const p=join(root,dest);mkdirSync(join(p,'..'),{recursive:true});copyFileSync(source,p)};
+try{
+ put('scripts/prepare-payroll-pr.mjs','scripts/prepare-payroll-pr.mjs');
+ put('data/manifest.json','data/manifest.json');
+ put('data/payroll-2026.json','data/payroll-2026.json');
+ const original=JSON.parse(readFileSync(join(root,'data/manifest.json')));
+ original.tax.year=2027;
+ writeFileSync(join(root,'data/manifest.json'),JSON.stringify(original));
+ mkdirSync(join(root,'candidates'),{recursive:true});
+ const prior=JSON.parse(readFileSync(join(root,'data/payroll-2026.json')));
+ const candidate={...prior,taxYear:2027,source:'https://www.ssa.gov/news/en/cola/factsheets/2027.html',socialSecurityWageBase:192300};
+ const target=join(root,'candidates/payroll-2027.json');
+ const output=join(root,'action-output.txt');
+ const run=()=>{writeFileSync(output,'');return spawnSync(process.execPath,['scripts/prepare-payroll-pr.mjs','2027'],{cwd:root,encoding:'utf8',env:{...process.env,GITHUB_OUTPUT:output}})};
+ writeFileSync(target,JSON.stringify(candidate));
+ let x=run();
+ assert.equal(x.status,0,x.stderr||x.stdout);
+ assert.match(readFileSync(output,'utf8'),/auto_safe=true/);
+ assert(existsSync(join(root,'data/payroll-2027.json')));
+ assert.equal(JSON.parse(readFileSync(join(root,'data/manifest.json'))).payroll.year,2027);
+ const report=readFileSync(join(root,'data-review-report.md'),'utf8');
+ assert.match(report,/192,300/);
+ assert.match(report,/mooyoungoh.github.io\/salaryflow/);
+ writeFileSync(join(root,'data/manifest.json'),JSON.stringify(original));
+ candidate.socialSecurityWageBase=240000;
+ writeFileSync(target,JSON.stringify(candidate));
+ x=run();
+ assert.equal(x.status,0,x.stderr||x.stdout);
+ assert.match(readFileSync(output,'utf8'),/auto_safe=false/);
+ writeFileSync(join(root,'data/manifest.json'),JSON.stringify(original));
+ candidate.socialSecurityRate=0.08;
+ writeFileSync(target,JSON.stringify(candidate));
+ x=run();
+ assert.notEqual(x.status,0,'Unverified payroll rate change must fail');
+ assert.equal(JSON.parse(readFileSync(join(root,'data/manifest.json'))).payroll.year,2026);
+ console.log('PASS: SSA official small annual change auto-merges, large changes require PR review, invalid rates rejected');
+}finally{rmSync(root,{recursive:true,force:true})}
