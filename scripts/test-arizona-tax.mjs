@@ -49,7 +49,7 @@ for(const [name,oldDed,custom,expected] of [
  ['flagged custom',16100,true,16100]
 ]){
  const store={getItem:()=>JSON.stringify({filing:'single',azDeduction:oldDed,...(custom===undefined?{}:{azDeductionCustomized:custom}),jobs:[{gross:100000}]})};
- const ctx2={ARIZONA_RULES:az,localStorage:store,newJob:()=>({id:'x',gross:0}),Number,isFinite:Number.isFinite};
+ const ctx2={ARIZONA_RULES:az,KEY:'salary-flow-public-v1',localStorage:store,newJob:()=>({id:'x',gross:0}),Number,isFinite:Number.isFinite};
  vm.createContext(ctx2);
  vm.runInContext(deductionHelper+configBlock+';globalThis.savedConfig=config;',ctx2);
  assert.equal(ctx2.savedConfig.azDeduction,expected,name);
