@@ -9,8 +9,12 @@ const draw=html.slice(start,end);
 assert(draw.includes(".join('')}</div></div></div><section class=\"overtime-panel\""),'Close workday field and schedule grid before overtime panel');
 assert(draw.includes('<section class="overtime-panel" aria-label='),'Use dedicated overtime panel');
 assert(draw.includes('<div class="overtime-grid">'),'Overtime requires its own grid');
-assert(draw.includes('</p></div></section><p class="job-note">예상 연간 보너스:'),'Close overtime panel before pay summary');
-assert(draw.includes("tr('사용 여부','Enable overtime')"),'Avoid repeating overtime title');
+assert(draw.includes('</p></div></div></section><p class="job-note">예상 연간 보너스:'),'Close overtime details and panel before pay summary');
+assert(draw.includes("tr('오늘 초과근무 사용','Enable today’s overtime')"),'Toggle label is explicit');
+assert(draw.includes('data-ot="enabled" type="checkbox" role="switch"'),'Overtime uses accessible toggle');
+assert(draw.includes('data-ot-details'),'Optional overtime fields are grouped');
+assert(draw.includes('data-ot-state'),'Toggle shows current state');
+assert(html.includes('.overtime-details[hidden]{display:none!important}'),'Closed toggle must hide fields');
 for(const control of ['enabled','startTime','hours','multiplier','custom']){
  assert(draw.includes('data-ot="'+control+'"'),'Missing overtime '+control+' control');
 }
