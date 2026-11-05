@@ -34,6 +34,7 @@ jobs:
           node scripts/test-today-overtime.mjs
           node scripts/test-overtime-layout.mjs
           node scripts/test-overtime-inputs.mjs
+          node scripts/test-custom-select.mjs
           node scripts/test-earnings-grid.mjs
           node scripts/test-dynamic-reference-years.mjs
           node scripts/test-reference-audit-ui.mjs
