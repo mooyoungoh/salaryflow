@@ -103,6 +103,33 @@ for candidate_path in (ROOT / "data/candidates").glob("payroll-*.json"):
                   f"{candidate_path.name}: unexpected change to {key}")
     print(f"Checked candidate: {candidate_path.name}")
 
+# Arizona candidates must remain inactive and match current statutory assumptions.
+active_arizona = json.loads((ROOT / manifest["arizona"]["path"]).read_text(encoding="utf-8"))
+for candidate_path in (ROOT / "data/candidates").glob("arizona-*.json"):
+    candidate = json.loads(candidate_path.read_text(encoding="utf-8"))
+    year_from_name = int(candidate_path.stem.split("-")[-1])
+    check(candidate.get("taxYear") == year_from_name,
+          f"{candidate_path.name}: taxYear differs from filename")
+    if year_from_name > active_arizona["taxYear"]:
+        check(candidate.get("schema") == 1, f"{candidate_path.name}: schema mismatch")
+        check(candidate.get("source") ==
+              "https://azdor.gov/forms/individual-income-tax-highlights",
+              f"{candidate_path.name}: untrusted Arizona deduction source")
+        check(candidate.get("rate") == active_arizona["rate"],
+              f"{candidate_path.name}: state rate changed without rate-specific approval")
+        check(candidate.get("charityMax") == active_arizona["charityMax"],
+              f"{candidate_path.name}: charity caps changed without statutory review")
+        deductions = candidate.get("standardDeduction", {})
+        check(set(deductions) == FILING, f"{candidate_path.name}: missing filing status")
+        for filing in FILING:
+            amount = deductions.get(filing)
+            previous = active_arizona["standardDeduction"][filing]
+            check(type(amount) is int and previous <= amount <= previous * 1.2,
+                  f"{candidate_path.name}: deduction {filing} out of bounds")
+        check(deductions.get("single") == deductions.get("mfs"),
+              f"{candidate_path.name}: single/MFS mismatch")
+    print(f"Checked candidate: {candidate_path.name}")
+
 # Inline fallback is mandatory: the site must start even when JSON fetches fail.
 index = (ROOT / "index.html").read_text(encoding="utf-8")
 check("const REFERENCE_BASELINE=" in index, "HTML baseline missing")
