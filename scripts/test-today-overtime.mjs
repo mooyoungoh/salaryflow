@@ -10,6 +10,7 @@ for(const token of ['data-ot="enabled"','data-ot="hours"','data-ot="multiplier"'
  assert(html.includes(token),'Missing overtime control '+token);
 }
 assert(html.includes('const otRate=overtimeRate(j);'),'Overtime rate should be computed once in the snapshot');
+assert(html.includes('scheduled:j.weekdays.includes(day.getDay())||!!otWindow'),'Days off with OT must be shown in shift countdown');
 assert(html.includes('overtimeAccrued(dayS,ts,j,item.otRate,item.otLiveWindows)'),'Current overtime must use cached rate');
 assert(html.includes('overtimeAccrued(weekS,dayS,j).money'),'Weekly earnings must include past OT');
 assert(html.includes('overtimeAccrued(monthS,dayS,j).money'),'Monthly earnings must include past OT');
