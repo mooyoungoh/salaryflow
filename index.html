@@ -830,11 +830,11 @@ function render(){
   const latestEnd=scheduledEnd.length?Math.max(...scheduledEnd.map(x=>x.end)):0;
   const countdownItem=x=>'<span class="end-job"><span class="end-name" title="'+escaped(x.name)+'">'+escaped(x.name)+'</span> '+(x.scheduled?(ts>=x.end?tr('퇴근 완료','Shift ended'):durationCountdown(x.end-ts)):tr('휴무','Day off'))+'</span>';
   updateHtml('#endCountdown',jobEndTimes.map(countdownItem).join('<span class="end-separator" aria-hidden="true">|</span>')+(jobEndTimes.length?'<span class="end-separator" aria-hidden="true">|</span>':'')+'<span class="end-total">'+tr('모든 업무 종료까지','Until all shifts end')+' '+(latestEnd?ts>=latestEnd?tr('퇴근 완료','All shifts ended'):durationCountdown(latestEnd-ts):tr('휴무','Day off'))+'</span>');
-  updateText('##percent',snapshot.target>0?(100*earned/snapshot.target).toFixed(1)+'%':tr('휴무일','Day off'));
-  updateText('##workStatus',working?tr('LIVE · 지금 수입 누적 중','LIVE · Earnings accumulating'):tr('OFF DUTY · 근무 시간 외','OFF DUTY · Outside work hours'));
-  updateText('##clock',now.toLocaleTimeString(lang==='ko'?'ko-KR':'en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
-  updateText('##todayDescription',config.mode==='gross'?tr('오늘 근무로 발생한 추정 세전 수입','Estimated gross earnings from today’s work'):tr(REFERENCE_DATA.years.tax+' Arizona 세후 추정 / 직접 수정된 실수령액',REFERENCE_DATA.years.tax+' Arizona net estimate / adjusted take-home pay'));
-  updateText('##careerExplain',config.mode==='gross'?tr('과거 연도는 연봉·인상률 추정, 올해는 실제 근무 스케줄에 맞춰 누적','Past years estimated from salary and raises; current year follows work schedules'):tr('과거 소득은 추정, 올해는 현재 세후 시급과 근무 일정으로 누적 · 과거 세법 미반영','Historical income estimated; this year accumulates using current net hourly rate and work schedules'));
+  updateText('#percent',snapshot.target>0?(100*earned/snapshot.target).toFixed(1)+'%':tr('휴무일','Day off'));
+  updateText('#workStatus',working?tr('LIVE · 지금 수입 누적 중','LIVE · Earnings accumulating'):tr('OFF DUTY · 근무 시간 외','OFF DUTY · Outside work hours'));
+  updateText('#clock',now.toLocaleTimeString(lang==='ko'?'ko-KR':'en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  updateText('#todayDescription',config.mode==='gross'?tr('오늘 근무로 발생한 추정 세전 수입','Estimated gross earnings from today’s work'):tr(REFERENCE_DATA.years.tax+' Arizona 세후 추정 / 직접 수정된 실수령액',REFERENCE_DATA.years.tax+' Arizona net estimate / adjusted take-home pay'));
+  updateText('#careerExplain',config.mode==='gross'?tr('과거 연도는 연봉·인상률 추정, 올해는 실제 근무 스케줄에 맞춰 누적','Past years estimated from salary and raises; current year follows work schedules'):tr('과거 소득은 추정, 올해는 현재 세후 시급과 근무 일정으로 누적 · 과거 세법 미반영','Historical income estimated; this year accumulates using current net hourly rate and work schedules'));
   lastStatusSecond=second;
  }
  const progressWidth=(snapshot.target>0?Math.min(100,Math.max(0,100*earned/snapshot.target)):0)+'%';if($('#progress').style.width!==progressWidth)$('#progress').style.width=progressWidth;
