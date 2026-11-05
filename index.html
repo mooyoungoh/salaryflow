@@ -257,6 +257,7 @@ const eyeOn='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10
 const eyeOff='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.5 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a14.3 14.3 0 0 1-4.3 5.5"/><path d="M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7c1.1 0 2.2-.2 3.2-.6"/><path d="M10 10a3 3 0 0 0 4 4"/></svg>';
 const todayISO=()=>{let d=new Date();d.setFullYear(d.getFullYear()-3);return d.toLocaleDateString('en-CA').match(/^\d{4}-\d{2}-\d{2}$/)?.[0]||`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 let seq=1;const newJob=(n=1)=>({id:'job'+Date.now()+Math.random().toString(36).slice(2,7),name:'Job '+n,gross:90000,aipPercent:0,extraBonus:0,pretax401:0,netOverride:null,frequency:'biweekly',start:'09:00',hours:8,breakMinutes:60,breakMode:'unpaid',breakStart:'12:00',weekdays:[1,2,3,4,5],hireDate:todayISO(),raise:0});
+const ARIZONA_RULES=REFERENCE_DATA.arizona;
 const standardArizonaDeduction=filing=>ARIZONA_RULES.standardDeduction[filing]??ARIZONA_RULES.standardDeduction.single;
 let config={countryCompare:'KR',currency:'USD',rankCompareState:'CA',taxState:'AZ',includeBonusDaily:false,mode:'gross',netMethod:'auto',filing:'single',outside:0,hsa:0,extraDeduction:0,azDeduction:standardArizonaDeduction('single'),azDeductionCustomized:false,jobs:[newJob()]};try{const old=JSON.parse(localStorage.getItem(KEY)||'null');if(old&&Array.isArray(old.jobs)&&old.jobs.length){config={...config,...old,netMethod:'auto',jobs:old.jobs.slice(0,8).map((j,i)=>({...newJob(i+1),...j,netOverride:Number.isFinite(j.netOverride)&&j.netOverride>=0?j.netOverride:null}))};if(old.azDeductionCustomized===undefined){config.azDeductionCustomized=Number.isFinite(old.azDeduction)&&old.azDeduction!==16100&&old.azDeduction!==standardArizonaDeduction(old.filing||'single');}if(!config.azDeductionCustomized)config.azDeduction=standardArizonaDeduction(config.filing);}}catch(e){}
 let hidden=new Set(),inputHidden=new Set();const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(config))}catch(e){}};
@@ -290,7 +291,6 @@ const TAX_STATES={AZ:'Arizona',AK:'Alaska',FL:'Florida',NV:'Nevada',NH:'New Hamp
 const ZERO_WAGE_STATES=new Set(['AK','FL','NV','NH','SD','TN','TX','WA','WY']);
 const TAX2026=REFERENCE_DATA.tax;
 const PAYROLL_RULES=REFERENCE_DATA.payroll;
-const ARIZONA_RULES=REFERENCE_DATA.arizona;
 function progressive(value,limits){const rates=[.10,.12,.22,.24,.32,.35,.37];let x=Math.max(0,value),prev=0,total=0;for(let i=0;i<rates.length;i++){let upper=i<limits.length?limits[i]:Infinity;total+=Math.max(0,Math.min(x,upper)-prev)*rates[i];prev=upper;if(x<=upper)break}return total}
 const annualBonus=j=>num(j.gross)*num(j.aipPercent,100)/100+num(j.extraBonus);
 const totalComp=j=>num(j.gross)+annualBonus(j);
