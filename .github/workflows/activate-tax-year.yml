@@ -1,0 +1,62 @@
+name: Atomic annual tax-year activation
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '12 16 * * 1'
+  push:
+    branches: [main]
+    paths:
+      - 'data/candidates/**'
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: atomic-tax-year-rollover
+  cancel-in-progress: false
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regression tests for atomic rollover
+        run: node scripts/test-activate-tax-year.mjs
+      - name: Check next-year reference completeness
+        run: node scripts/activate-tax-year.mjs --check
+      - name: Apply only when all sources pass and year is effective
+        run: node scripts/activate-tax-year.mjs --apply
+      - name: Validate the complete resulting active dataset
+        run: |
+          node scripts/validate-data.mjs
+          python3 scripts/validate_reference_data.py
+      - name: Open atomic rollout PR
+        id: pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'data: activate complete verified IRS SSA Arizona tax year'
+          branch: data-review/atomic-next-tax-year
+          base: main
+          title: '[Automatic] Activate jointly verified IRS, SSA and Arizona tax year'
+          body: |
+            All three current-year datasets have validated matching years, official source domains,
+            provenance, acceptable year-over-year ranges, and passed full regression checks.
+            This changes IRS + Payroll + Arizona in a single commit. US/WID rankings and the
+            embedded offline fallback remain unchanged.
+            Site after merge: https://mooyoungoh.github.io/salaryflow/
+          add-paths: |
+            data/manifest.json
+            data/tax-*.json
+            data/payroll-*.json
+            data/arizona-*.json
+      - name: Merge verified atomic rollout
+        if: steps.pr.outputs.pull-request-url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+        run: |
+          gh pr merge "$PR_URL" --squash --delete-branch
+          gh pr comment "$PR_URL" --body "Annual tax-year activation merged atomically after source, year, and regression checks. Website: https://mooyoungoh.github.io/salaryflow/"

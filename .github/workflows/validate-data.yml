@@ -24,6 +24,8 @@ jobs:
           node-version: '22'
       - name: Validate active datasets and regression samples
         run: node scripts/validate-data.mjs
+      - name: Verify atomic tax-year rollover rules
+        run: node scripts/test-activate-tax-year.mjs
       - name: Test next-year SSA candidate parser
         run: python3 -m unittest discover -s scripts -p 'test_propose_ssa_payroll.py' -v
       - name: Test candidate PR preparation with synthetic data
