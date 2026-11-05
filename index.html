@@ -442,7 +442,21 @@ let seq=1;const newJob=(n=1)=>({id:'job'+Date.now()+Math.random().toString(36).s
 const ARIZONA_RULES=REFERENCE_DATA.arizona;
 const standardArizonaDeduction=filing=>ARIZONA_RULES.standardDeduction[filing]??ARIZONA_RULES.standardDeduction.single;
 let config={countryCompare:'KR',currency:'USD',rankCompareState:'CA',taxState:'AZ',includeBonusDaily:false,mode:'gross',netMethod:'auto',filing:'single',outside:0,hsa:0,extraDeduction:0,azDeduction:standardArizonaDeduction('single'),azDeductionCustomized:false,jobs:[newJob()]};try{const old=JSON.parse(localStorage.getItem(KEY)||'null');if(old&&Array.isArray(old.jobs)&&old.jobs.length){config={...config,...old,netMethod:'auto',jobs:old.jobs.slice(0,8).map((j,i)=>({...newJob(i+1),...j,netOverride:Number.isFinite(j.netOverride)&&j.netOverride>=0?j.netOverride:null,overtimeRecords:j.overtimeRecords&&typeof j.overtimeRecords==='object'&&!Array.isArray(j.overtimeRecords)?j.overtimeRecords:{}}))};if(old.azDeductionCustomized===undefined){config.azDeductionCustomized=Number.isFinite(old.azDeduction)&&old.azDeduction!==16100&&old.azDeduction!==standardArizonaDeduction(old.filing||'single');}if(!config.azDeductionCustomized)config.azDeduction=standardArizonaDeduction(config.filing);}}catch(e){}
-let hidden=new Set(),inputHidden=new Set(),earningsRevision=0;const save=()=>{earningsRevision++;try{localStorage.setItem(KEY,JSON.stringify(config))}catch(e){}};
+let hidden=new Set(),inputHidden=new Set(),earningsRevision=0;
+let pendingSave=null;
+function flushSave(){
+ if(pendingSave!==null){clearTimeout(pendingSave);pendingSave=null;}
+ try{localStorage.setItem(KEY,JSON.stringify(config))}catch(e){}
+}
+function save(){
+ // Recalculate immediately on every edit, but persist only after typing settles.
+ earningsRevision++;
+ if(pendingSave!==null)clearTimeout(pendingSave);
+ pendingSave=setTimeout(flushSave,300);
+}
+// Preserve the most recent edit if the user switches tabs or navigates immediately.
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&pendingSave!==null)flushSave()});
+window.addEventListener('pagehide',()=>{if(pendingSave!==null)flushSave()});
 const num=(v,max=1e9)=>Math.max(0,Math.min(max,Number(v)||0));
 const secClock=t=>{const [h,m]=String(t||'09:00').split(':').map(Number);return Math.min(86340,Math.max(0,(h||0)*3600+(m||0)*60))};
 const startDay=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
@@ -469,6 +483,33 @@ function durationCountdown(seconds){
  return lang==='ko'?hrs+'시간 '+String(minutes).padStart(2,'0')+'분 '+String(secs).padStart(2,'0')+'초':hrs+'h '+String(minutes).padStart(2,'0')+'m '+String(secs).padStart(2,'0')+'s';
 }
 function elapsedWork(from,to,j){if(to<=from)return 0;let day=startDay(new Date(from*1000));day.setDate(day.getDate()-1);const end=startDay(new Date(to*1000));let total=0,limit=0;while(day<=end&&limit++<370){total+=Math.max(0,workSeconds(day,to,j)-workSeconds(day,from,j));day.setDate(day.getDate()+1)}return total}
+function cachedDayWorkClock(day,j){
+ // Freeze the workSeconds(day,t,j) schedule constants once per job/day.
+ if(!j.weekdays.includes(day.getDay()))return ()=>0;
+ const base=startDay(day).getTime()/1000,start=base+secClock(j.start);
+ const hours=num(j.hours,24)*3600,breakSeconds=num(j.breakMinutes,240)*60,end=start+hours+breakSeconds;
+ const paid=j.breakMode==='paid'||breakSeconds===0;
+ const chosen=base+secClock(j.breakStart||'12:00');
+ const fallback=start+Math.min(4*3600,hours/2);
+ const breakStart=chosen>=start&&chosen+breakSeconds<=end?chosen:fallback;
+ const breakEnd=breakStart+breakSeconds;
+ return t=>{
+  const elapsed=Math.max(0,Math.min(end,t)-start);
+  if(paid)return Math.min(hours+breakSeconds,elapsed);
+  const paused=Math.max(0,Math.min(breakEnd,t)-breakStart);
+  return Math.min(hours,Math.max(0,elapsed-paused));
+ };
+}
+function cachedTodayWorkClock(day,j){
+ // The original elapsedWork(dayStart, now) covers today's shift and yesterday's overnight shift.
+ const dayStart=day.getTime()/1000;
+ const yesterday=new Date(day);yesterday.setDate(yesterday.getDate()-1);
+ const clocks=[cachedDayWorkClock(yesterday,j),cachedDayWorkClock(day,j)];
+ const bases=clocks.map(f=>f(dayStart));
+ const elapsed=(from,to)=>to<=from?0:clocks.reduce((sum,f,i)=>sum+Math.max(0,f(to)-f(from)),0);
+ const today=ts=>clocks.reduce((sum,f,i)=>sum+Math.max(0,f(ts)-bases[i]),0);
+ return {today,active:ts=>elapsed(ts-1,ts)};
+}
 
 const overtimeDate=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
 const overtimeMultiplier=r=>Number.isFinite(Number(r?.multiplier))?Math.max(0,Math.min(10,Number(r.multiplier))):1.5;
