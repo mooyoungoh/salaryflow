@@ -22,9 +22,14 @@ for(const [key,value] of Object.entries(values)){
   addEventListener(name,fn){this.callbacks[name]=fn}
  };
 }
+inputs.enabled.checked=false;
+inputs.enabled.setAttribute=(name,value)=>{inputs.enabled.ariaChecked=String(value)};
+const details={hidden:true},state={textContent:'OFF'};
 const box={
  querySelectorAll(selector){assert.equal(selector,'[data-ot]');return Object.values(inputs)},
  querySelector(selector){
+  if(selector==='[data-ot-details]')return details;
+  if(selector==='[data-ot-state]')return state;
   const match=selector.match(/\[data-ot="([^"]+)"\]/);
   assert(match,'Bad selector '+selector);
   return inputs[match[1]];
@@ -34,19 +39,23 @@ const job={overtimeRecords:{}};
 let saves=0,renders=0;
 const ctx={
  box,j:job,save:()=>saves++,render:()=>renders++,
- overtimeDate:()=> '2026-11-04',
+ overtimeDate:()=> '2026-11-04',syncCustomSelect:()=>{},
  overtimeMultiplier:r=>Number.isFinite(Number(r?.multiplier))?Math.max(0,Math.min(10,Number(r.multiplier))):1.5
 };
 vm.createContext(ctx);
 vm.runInContext(source,ctx);
 const invoke=(name,event,value)=>{
- if(value!==undefined)inputs[name].value=value;
+ if(name==='enabled'&&value!==undefined)inputs[name].checked=value==='on';
+ else if(value!==undefined)inputs[name].value=value;
  const fn=inputs[name].callbacks[event];
  assert.equal(typeof fn,'function',name+' '+event+' listener absent');
  fn();
 };
 invoke('enabled','change','on');
 assert.equal(inputs.custom.disabled,false,'Custom multiplier must unlock whenever OT is ON');
+assert.equal(details.hidden,false,'ON must reveal overtime detail fields');
+assert.equal(state.textContent,'ON');
+assert.equal(inputs.enabled.ariaChecked,'true');
 assert.equal(inputs.startTime.disabled,false,'Overtime start must unlock when enabled');
 assert.equal(job.overtimeRecords['2026-11-04'].startTime,'18:00');
 invoke('custom','input','2.75');
@@ -67,6 +76,9 @@ invoke('startTime','change','19:45');
 assert.equal(job.overtimeRecords['2026-11-04'].startTime,'19:45','Entered clock time persists');
 invoke('enabled','change','off');
 assert.equal(inputs.custom.disabled,true,'Turning OT off disables OT controls');
+assert.equal(details.hidden,true,'OFF must conceal overtime detail fields');
+assert.equal(state.textContent,'OFF');
+assert.equal(inputs.enabled.ariaChecked,'false');
 assert.equal(inputs.startTime.disabled,true);
 assert.equal(job.overtimeRecords['2026-11-04'].startTime,'19:45','Disabling OT retains time for later same-day reuse');
 assert(saves>=8&&renders>=8,'Changed settings should save and refresh immediately');
