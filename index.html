@@ -711,7 +711,7 @@ function render(){
     yearBase:elapsedWork(yearS,dayS,j)*sr+overtimeAccrued(yearS,dayS,j).money,
     lifetimeBase:career(j,day)+overtimeAccrued(Math.min(dayS,hireTime(j)/1000),dayS,j).money,
     name:j.name||'Job '+(i+1),
-    scheduled:j.weekdays.includes(day.getDay()),
+    scheduledRegular:j.weekdays.includes(day.getDay()),scheduled:j.weekdays.includes(day.getDay())||!!otWindow,
     start:dayS+secClock(j.start),end:shiftEndTime(day,j)};
   });
   earningsSnapshot={revision:earningsRevision,dayS,jobs,
@@ -743,7 +743,7 @@ function render(){
   remaining+=Math.max(0,item.target-worked)*item.rate+Math.max(0,item.otTarget-(item.otWindow?overtimeAccrued(item.otWindow.start,ts,j,item.otRate,item.otLiveWindows).money:0));
   paidSecs+=worked+overtime.seconds;
   jobWorkTimes.push({name:item.name,hours:(worked+overtime.seconds)/3600});
-  jobEndTimes.push({...item,end:Math.max(item.end,item.otWindow?.end||item.end)});
+  jobEndTimes.push({...item,end:item.otWindow?(item.scheduledRegular?Math.max(item.end,item.otWindow.end):item.otWindow.end):item.end});
   if(active){rate+=item.rate;working=true}
   if(currentOtRate>0){rate+=currentOtRate;working=true}
  }
