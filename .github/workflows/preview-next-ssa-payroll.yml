@@ -1,0 +1,49 @@
+name: Preview next-year SSA payroll reference
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '42 15 * * 1'
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test SSA parser (offline)
+        run: python3 -m unittest discover -s scripts -p 'test_propose_ssa_payroll.py' -v
+      - name: Generate candidate from official SSA sources
+        run: python3 scripts/propose_ssa_payroll.py
+      - name: Create a candidate-only PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain -- data/candidates/)" ]; then
+            echo "No new candidate"
+            exit 0
+          fi
+          YEAR=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          files = sorted(Path('data/candidates').glob('payroll-*.json'))
+          if len(files) != 1:
+              raise SystemExit("Expected one candidate for next SSA year")
+          print(json.loads(files[0].read_text())['taxYear'])
+          PY
+          )
+          BRANCH="automation/ssa-payroll-$YEAR"
+          if [ -n "$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number')" ]; then
+            echo "Candidate PR already open"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add data/candidates/
+          git commit -m "data: stage official SSA payroll candidate for $YEAR"
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "Review future SSA payroll taxable maximum ($YEAR)" \
+            --body "SSA official sources: https://www.ssa.gov/oact/cola/cbb.html and https://www.ssa.gov/news/en/cola/factsheets/$YEAR.html. This PR stages an informational JSON candidate only. It does NOT update data/manifest.json or Salary Flow calculation defaults. Activate only after the applicable federal-tax year is available and all checks pass. Website: https://mooyoungoh.github.io/salaryflow/"
