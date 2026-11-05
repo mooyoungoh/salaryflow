@@ -30,7 +30,8 @@ export function expectedInline(html,manifest,datasets){
  const oldStart=html.lastIndexOf('\n',begin)+1;
  // Replace the adjacent baseline comment as well to prevent misleading dated annotations.
  const previousLineStart=html.lastIndexOf('\n',oldStart-2)+1;
- const prefix=html.slice(previousLineStart,oldStart).startsWith('// Fixed, versioned ') ? previousLineStart : oldStart;
+ const preceding=html.slice(previousLineStart,oldStart);
+ const prefix=/^\/\/ (?:Fixed, versioned |Generated from active data\/manifest\.json\.)/.test(preceding) ? previousLineStart : oldStart;
  return html.slice(0,prefix)+replacement+html.slice(end);
 }
 export function syncContent(html,manifest,datasets){
