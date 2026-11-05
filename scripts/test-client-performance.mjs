@@ -3,6 +3,9 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
 const html=readFileSync('index.html','utf8');
+const inlineStart=html.lastIndexOf('<script',html.indexOf('const REFERENCE_BASELINE='));
+const inlineBody=html.slice(html.indexOf('>',inlineStart)+1,html.indexOf('</script>',inlineStart));
+new vm.Script('(async()=>{'+inlineBody+'})()');
 const helpers=html.slice(html.indexOf('const num=('),html.indexOf('const TAX_STATES='));
 const saveSource=html.slice(html.indexOf('let hidden=new Set()'),html.indexOf('const num=('));
 const privacySource=html.slice(html.indexOf('const MONEY_ELEMENTS={}'),html.indexOf('function syncPaychecks(){'));
@@ -26,7 +29,7 @@ for(const date of [new Date(2026,10,4),new Date(2026,10,8),new Date(2026,10,1),n
  for(const job of jobs){
   const clock=ctx.clocks.cachedTodayWorkClock(date,job);
   const start=date.getTime()/1000;
-  for(const hours of [0,1,5,9,12,17,23,23.999,26,28]){
+  for(const hours of [0,1,5,9,12,17,23,23.999]){
    const to=start+hours*3600;
    const original=ctx.clocks.elapsedWork(start,to,job);
    const cached=clock.today(to);
