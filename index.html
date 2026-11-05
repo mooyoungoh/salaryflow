@@ -438,10 +438,10 @@ $('#langEn').onclick=()=>{lang='en';try{localStorage.setItem(LANG_KEY,lang)}catc
 const eyeOn='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 const eyeOff='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.5 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a14.3 14.3 0 0 1-4.3 5.5"/><path d="M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7c1.1 0 2.2-.2 3.2-.6"/><path d="M10 10a3 3 0 0 0 4 4"/></svg>';
 const todayISO=()=>{let d=new Date();d.setFullYear(d.getFullYear()-3);return d.toLocaleDateString('en-CA').match(/^\d{4}-\d{2}-\d{2}$/)?.[0]||`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
-let seq=1;const newJob=(n=1)=>({id:'job'+Date.now()+Math.random().toString(36).slice(2,7),name:'Job '+n,gross:90000,aipPercent:0,extraBonus:0,pretax401:0,netOverride:null,frequency:'biweekly',start:'09:00',hours:8,breakMinutes:60,breakMode:'unpaid',breakStart:'12:00',weekdays:[1,2,3,4,5],hireDate:todayISO(),raise:0});
+let seq=1;const newJob=(n=1)=>({id:'job'+Date.now()+Math.random().toString(36).slice(2,7),name:'Job '+n,gross:90000,aipPercent:0,extraBonus:0,pretax401:0,netOverride:null,frequency:'biweekly',start:'09:00',hours:8,breakMinutes:60,breakMode:'unpaid',breakStart:'12:00',weekdays:[1,2,3,4,5],hireDate:todayISO(),raise:0,overtimeRecords:{}});
 const ARIZONA_RULES=REFERENCE_DATA.arizona;
 const standardArizonaDeduction=filing=>ARIZONA_RULES.standardDeduction[filing]??ARIZONA_RULES.standardDeduction.single;
-let config={countryCompare:'KR',currency:'USD',rankCompareState:'CA',taxState:'AZ',includeBonusDaily:false,mode:'gross',netMethod:'auto',filing:'single',outside:0,hsa:0,extraDeduction:0,azDeduction:standardArizonaDeduction('single'),azDeductionCustomized:false,jobs:[newJob()]};try{const old=JSON.parse(localStorage.getItem(KEY)||'null');if(old&&Array.isArray(old.jobs)&&old.jobs.length){config={...config,...old,netMethod:'auto',jobs:old.jobs.slice(0,8).map((j,i)=>({...newJob(i+1),...j,netOverride:Number.isFinite(j.netOverride)&&j.netOverride>=0?j.netOverride:null}))};if(old.azDeductionCustomized===undefined){config.azDeductionCustomized=Number.isFinite(old.azDeduction)&&old.azDeduction!==16100&&old.azDeduction!==standardArizonaDeduction(old.filing||'single');}if(!config.azDeductionCustomized)config.azDeduction=standardArizonaDeduction(config.filing);}}catch(e){}
+let config={countryCompare:'KR',currency:'USD',rankCompareState:'CA',taxState:'AZ',includeBonusDaily:false,mode:'gross',netMethod:'auto',filing:'single',outside:0,hsa:0,extraDeduction:0,azDeduction:standardArizonaDeduction('single'),azDeductionCustomized:false,jobs:[newJob()]};try{const old=JSON.parse(localStorage.getItem(KEY)||'null');if(old&&Array.isArray(old.jobs)&&old.jobs.length){config={...config,...old,netMethod:'auto',jobs:old.jobs.slice(0,8).map((j,i)=>({...newJob(i+1),...j,netOverride:Number.isFinite(j.netOverride)&&j.netOverride>=0?j.netOverride:null,overtimeRecords:j.overtimeRecords&&typeof j.overtimeRecords==='object'&&!Array.isArray(j.overtimeRecords)?j.overtimeRecords:{}}))};if(old.azDeductionCustomized===undefined){config.azDeductionCustomized=Number.isFinite(old.azDeduction)&&old.azDeduction!==16100&&old.azDeduction!==standardArizonaDeduction(old.filing||'single');}if(!config.azDeductionCustomized)config.azDeduction=standardArizonaDeduction(config.filing);}}catch(e){}
 let hidden=new Set(),inputHidden=new Set(),earningsRevision=0;const save=()=>{earningsRevision++;try{localStorage.setItem(KEY,JSON.stringify(config))}catch(e){}};
 const num=(v,max=1e9)=>Math.max(0,Math.min(max,Number(v)||0));
 const secClock=t=>{const [h,m]=String(t||'09:00').split(':').map(Number);return Math.min(86340,Math.max(0,(h||0)*3600+(m||0)*60))};
@@ -469,6 +469,41 @@ function durationCountdown(seconds){
  return lang==='ko'?hrs+'시간 '+String(minutes).padStart(2,'0')+'분 '+String(secs).padStart(2,'0')+'초':hrs+'h '+String(minutes).padStart(2,'0')+'m '+String(secs).padStart(2,'0')+'s';
 }
 function elapsedWork(from,to,j){if(to<=from)return 0;let day=startDay(new Date(from*1000));day.setDate(day.getDate()-1);const end=startDay(new Date(to*1000));let total=0,limit=0;while(day<=end&&limit++<370){total+=Math.max(0,workSeconds(day,to,j)-workSeconds(day,from,j));day.setDate(day.getDate()+1)}return total}
+
+const overtimeDate=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+const overtimeMultiplier=r=>Number.isFinite(Number(r?.multiplier))?Math.max(0,Math.min(10,Number(r.multiplier))):1.5;
+const overtimeHours=r=>r?.enabled?Math.max(0,Math.min(12,Number(r.hours)||0)):0;
+function overtimeWindow(dateKey,j,record){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)||!record||!overtimeHours(record))return null;
+ const [y,m,d]=dateKey.split('-').map(Number),date=new Date(y,m-1,d);
+ if(date.getFullYear()!==y||date.getMonth()!==m-1||date.getDate()!==d)return null;
+ // On days off, overtime begins at the configured shift start instead of after a nonexistent shift.
+ const start=j.weekdays.includes(date.getDay())?shiftEndTime(date,j):date.getTime()/1000+secClock(j.start);
+ return {start,end:start+overtimeHours(record)*3600,multiplier:overtimeMultiplier(record)};
+}
+function overtimeRate(j){
+ // Gross: base salary only, not bonuses. Net: effective estimated base take-home.
+ const base=config.mode==='gross'?num(j.gross):annualNet(j,false);
+ return base/(52*(j.weekdays.length||5)*Math.max(.1,paidHours(j))*3600);
+}
+function overtimeAccrued(from,to,j,baseRate,preparedWindows){
+ if(to<=from||!j.overtimeRecords)return {money:0,seconds:0,activeRate:0};
+ let money=0,seconds=0,activeRate=0;
+ const perSecond=baseRate??overtimeRate(j);
+ const windows=preparedWindows??Object.entries(j.overtimeRecords).map(([key,value])=>overtimeWindow(key,j,value));
+ for(const window of windows){
+  if(!window||window.end<=from||window.start>=to)continue;
+  const overlap=Math.max(0,Math.min(to,window.end)-Math.max(from,window.start));
+  if(!overlap)continue;
+  seconds+=overlap;money+=overlap*perSecond*window.multiplier;
+  if(window.start<to&&window.end>=to)activeRate+=perSecond*window.multiplier;
+ }
+ return {money,seconds,activeRate};
+}
+function todaysOvertime(j,now=new Date()){
+ const record=j.overtimeRecords?.[overtimeDate(now)];
+ return record&&record.enabled?record:{enabled:false,hours:0,multiplier:1.5};
+}
 const TAX_STATES={AZ:'Arizona',AK:'Alaska',FL:'Florida',NV:'Nevada',NH:'New Hampshire',SD:'South Dakota',TN:'Tennessee',TX:'Texas',WA:'Washington',WY:'Wyoming'};
 const ZERO_WAGE_STATES=new Set(['AK','FL','NV','NH','SD','TN','TX','WA','WY']);
 const TAX2026=REFERENCE_DATA.tax;
@@ -509,8 +544,34 @@ function career(j,now){
 }
 function escaped(s){return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;')}
 const collapsedJobs=new Set(config.jobs.map(job=>job.id));
-function drawJobs(){const el=$('#jobs');el.innerHTML=config.jobs.map((j,i)=>`<article class="job ${collapsedJobs.has(j.id)?'is-collapsed':''}" data-id="${escaped(j.id)}"><div class="job-head"><button class="job-toggle" data-toggle-job type="button" aria-expanded="${!collapsedJobs.has(j.id)}" aria-label="${tr('직장 설정 접기 또는 펼치기','Collapse or expand job settings')}"><span class="job-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span><span class="job-title">${escaped(j.name||'Job '+(i+1))}</span></button>${config.jobs.length>1?'<button class="remove" data-remove="1" type="button">삭제</button>':''}</div><div class="job-body"><div class="form"><div class="field"><label>직장 이름</label><input data-prop="name" value="${escaped(j.name)}" maxlength="40"></div><div class="field"><label>세전 연봉 (USD)</label><div class="inputeye"><input data-prop="gross" type="${inputHidden.has(j.id+':gross')?'password':'number'}" inputmode="decimal" min="0" value="${num(j.gross)}"><button class="privacy" data-inputhide="gross" type="button" aria-label="세전 연봉 숨기기">${inputHidden.has(j.id+':gross')?eyeOff:eyeOn}</button></div></div><div class="field"><label>AIP 보너스 (기본급의 %)</label><input data-prop="aipPercent" type="number" min="0" max="100" step=".5" value="${num(j.aipPercent,100)}"></div><div class="field"><label>비정기 보너스 (연간 예상 $)</label><input data-prop="extraBonus" type="number" min="0" step="100" value="${num(j.extraBonus)}"></div><div class="field"><label>세전 Traditional 401(k) 공제 (연간 $)</label><input data-prop="pretax401" type="number" min="0" step="100" value="${num(j.pretax401)}"></div><div class="field"><label>입사일</label><input data-prop="hireDate" type="date" value="${escaped(j.hireDate)}"></div><div class="field"><label>급여 1회 실수령액 (USD)</label><div class="inputeye"><input data-prop="netOverride" type="${inputHidden.has(j.id+':netOverride')?'password':'number'}" inputmode="decimal" min="0" step="0.01" value="${(j.netOverride!==null?num(j.netOverride):autoPaycheck(j)).toFixed(2)}"><button class="privacy" data-inputhide="netOverride" type="button" aria-label="실수령액 숨기기">${inputHidden.has(j.id+':netOverride')?eyeOff:eyeOn}</button></div><div class="paycheck-help"><span class="paycheck-source">${j.netOverride===null?'자동 계산 · Arizona 세금 추정':'직접 수정한 금액'}</span><button class="linkbtn auto-net" type="button" ${j.netOverride===null?'disabled':''}>자동 계산으로 복원</button></div></div><div class="field"><label>급여 지급 주기</label><select data-prop="frequency">${[['weekly','매주 (52회)'],['biweekly','격주 (26회)'],['semimonthly','월 2회 (24회)'],['monthly','매월 (12회)']].map(([v,t])=>`<option value="${v}" ${j.frequency===v?'selected':''}>${t}</option>`).join('')}</select></div><div class="field"><label>연평균 연봉 인상률 (%)</label><input data-prop="raise" type="number" min="-50" max="100" step=".5" value="${Number(j.raise)||0}"></div></div><hr class="job-divider"><div class="fieldmark">근무 스케줄</div><div class="form"><div class="field"><label>출근 시간</label><input data-prop="start" type="time" value="${escaped(j.start)}"></div><div class="field"><label>하루 근무시간 (휴식 제외)</label><input data-prop="hours" type="number" min=".5" max="24" step=".5" value="${num(j.hours,24)}"></div><div class="field"><label>점심/휴식시간 (분)</label><input data-prop="breakMinutes" type="number" min="0" max="240" step="15" value="${num(j.breakMinutes,240)}"></div><div class="field"><label>점심/휴식 시작 시각</label><input data-prop="breakStart" type="time" value="${escaped(j.breakStart||'12:00')}"></div><div class="field"><label>점심/휴식 수입 계산</label><select data-prop="breakMode"><option value="unpaid" ${j.breakMode!=='paid'?'selected':''}>${tr('제외 (무급 · 카운터 정지)','Exclude (unpaid · counter pauses)')}</option><option value="paid" ${j.breakMode==='paid'?'selected':''}>${tr('포함 (유급 · 계속 증가)','Include (paid · keeps counting)')}</option></select><div class="help">${tr('유급 선택 시 휴식시간도 하루 총 유급시간에 포함돼 시간당 수입이 낮아집니다.','With a paid break, the same daily salary is spread over more paid hours, so the hourly rate is lower.')}</div></div><div class="field wide"><label>근무 요일</label><div class="weekdays">${[['일',0],['월',1],['화',2],['수',3],['목',4],['금',5],['토',6]].map(([t,d])=>`<button class="weekday ${j.weekdays.includes(d)?'active':''}" data-day="${d}" type="button" aria-pressed="${j.weekdays.includes(d)}">${t}</button>`).join('')}</div></div></div><p class="job-note">예상 연간 보너스: <b class="bonus-value">${money(annualBonus(j))}</b> · 예상 총보상: <b class="comp-value">${money(totalComp(j))}</b> · 예상 연간 실수령액: <b class="net-value">${money(annualNet(j))}</b></p><p class="job-note">${tr('휴식 제외: 설정한 시각부터 금액 정지 · 휴식 포함: 근무 시작부터 퇴근까지 계속 증가','Unpaid: counter pauses at break start · Paid: earnings continue through the break')}</p></div></article>`).join('');translateTree(el);
- $$('.job').forEach(box=>{const j=config.jobs.find(x=>x.id===box.dataset.id);box.querySelector('[data-toggle-job]')?.addEventListener('click',()=>{const closed=!collapsedJobs.has(j.id);if(closed)collapsedJobs.add(j.id);else collapsedJobs.delete(j.id);box.classList.toggle('is-collapsed',closed);box.querySelector('[data-toggle-job]').setAttribute('aria-expanded',String(!closed));});box.querySelectorAll('[data-prop]').forEach(input=>{const prop=input.dataset.prop;const update=()=>{j[prop]=['gross','netOverride','hours','breakMinutes','raise','pretax401','aipPercent','extraBonus'].includes(prop)?Number(input.value):input.value;save();render();if(prop==='netOverride'){const btn=box.querySelector('.auto-net');if(btn)btn.disabled=false;} const title=box.querySelector('.job-title');if(prop==='name'&&title)title.textContent=j.name||'직장'};input.addEventListener('input',update);input.addEventListener('change',update)});box.querySelectorAll('[data-day]').forEach(btn=>btn.addEventListener('click',()=>{const d=Number(btn.dataset.day);if(j.weekdays.includes(d)){if(j.weekdays.length===1)return;j.weekdays=j.weekdays.filter(x=>x!==d)}else{j.weekdays=[...j.weekdays,d].sort()}btn.classList.toggle('active',j.weekdays.includes(d));btn.setAttribute('aria-pressed',String(j.weekdays.includes(d)));save();render()}));box.querySelector('.auto-net')?.addEventListener('click',()=>{j.netOverride=null;save();render()});box.querySelector('[data-remove]')?.addEventListener('click',()=>{config.jobs=config.jobs.filter(x=>x.id!==j.id);save();drawJobs();render()});box.querySelectorAll('[data-inputhide]').forEach(btn=>btn.addEventListener('click',()=>{const key=j.id+':'+btn.dataset.inputhide;inputHidden.has(key)?inputHidden.delete(key):inputHidden.add(key);const inp=box.querySelector(`[data-prop="${btn.dataset.inputhide}"]`);inp.type=inputHidden.has(key)?'password':'number';btn.innerHTML=inputHidden.has(key)?eyeOff:eyeOn;btn.setAttribute('aria-pressed',String(inputHidden.has(key)))}))})}
+function drawJobs(){const el=$('#jobs');el.innerHTML=config.jobs.map((j,i)=>`<article class="job ${collapsedJobs.has(j.id)?'is-collapsed':''}" data-id="${escaped(j.id)}"><div class="job-head"><button class="job-toggle" data-toggle-job type="button" aria-expanded="${!collapsedJobs.has(j.id)}" aria-label="${tr('직장 설정 접기 또는 펼치기','Collapse or expand job settings')}"><span class="job-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span><span class="job-title">${escaped(j.name||'Job '+(i+1))}</span></button>${config.jobs.length>1?'<button class="remove" data-remove="1" type="button">삭제</button>':''}</div><div class="job-body"><div class="form"><div class="field"><label>직장 이름</label><input data-prop="name" value="${escaped(j.name)}" maxlength="40"></div><div class="field"><label>세전 연봉 (USD)</label><div class="inputeye"><input data-prop="gross" type="${inputHidden.has(j.id+':gross')?'password':'number'}" inputmode="decimal" min="0" value="${num(j.gross)}"><button class="privacy" data-inputhide="gross" type="button" aria-label="세전 연봉 숨기기">${inputHidden.has(j.id+':gross')?eyeOff:eyeOn}</button></div></div><div class="field"><label>AIP 보너스 (기본급의 %)</label><input data-prop="aipPercent" type="number" min="0" max="100" step=".5" value="${num(j.aipPercent,100)}"></div><div class="field"><label>비정기 보너스 (연간 예상 $)</label><input data-prop="extraBonus" type="number" min="0" step="100" value="${num(j.extraBonus)}"></div><div class="field"><label>세전 Traditional 401(k) 공제 (연간 $)</label><input data-prop="pretax401" type="number" min="0" step="100" value="${num(j.pretax401)}"></div><div class="field"><label>입사일</label><input data-prop="hireDate" type="date" value="${escaped(j.hireDate)}"></div><div class="field"><label>급여 1회 실수령액 (USD)</label><div class="inputeye"><input data-prop="netOverride" type="${inputHidden.has(j.id+':netOverride')?'password':'number'}" inputmode="decimal" min="0" step="0.01" value="${(j.netOverride!==null?num(j.netOverride):autoPaycheck(j)).toFixed(2)}"><button class="privacy" data-inputhide="netOverride" type="button" aria-label="실수령액 숨기기">${inputHidden.has(j.id+':netOverride')?eyeOff:eyeOn}</button></div><div class="paycheck-help"><span class="paycheck-source">${j.netOverride===null?'자동 계산 · Arizona 세금 추정':'직접 수정한 금액'}</span><button class="linkbtn auto-net" type="button" ${j.netOverride===null?'disabled':''}>자동 계산으로 복원</button></div></div><div class="field"><label>급여 지급 주기</label><select data-prop="frequency">${[['weekly','매주 (52회)'],['biweekly','격주 (26회)'],['semimonthly','월 2회 (24회)'],['monthly','매월 (12회)']].map(([v,t])=>`<option value="${v}" ${j.frequency===v?'selected':''}>${t}</option>`).join('')}</select></div><div class="field"><label>연평균 연봉 인상률 (%)</label><input data-prop="raise" type="number" min="-50" max="100" step=".5" value="${Number(j.raise)||0}"></div></div><hr class="job-divider"><div class="fieldmark">근무 스케줄</div><div class="form"><div class="field"><label>출근 시간</label><input data-prop="start" type="time" value="${escaped(j.start)}"></div><div class="field"><label>하루 근무시간 (휴식 제외)</label><input data-prop="hours" type="number" min=".5" max="24" step=".5" value="${num(j.hours,24)}"></div><div class="field"><label>점심/휴식시간 (분)</label><input data-prop="breakMinutes" type="number" min="0" max="240" step="15" value="${num(j.breakMinutes,240)}"></div><div class="field"><label>점심/휴식 시작 시각</label><input data-prop="breakStart" type="time" value="${escaped(j.breakStart||'12:00')}"></div><div class="field"><label>점심/휴식 수입 계산</label><select data-prop="breakMode"><option value="unpaid" ${j.breakMode!=='paid'?'selected':''}>${tr('제외 (무급 · 카운터 정지)','Exclude (unpaid · counter pauses)')}</option><option value="paid" ${j.breakMode==='paid'?'selected':''}>${tr('포함 (유급 · 계속 증가)','Include (paid · keeps counting)')}</option></select><div class="help">${tr('유급 선택 시 휴식시간도 하루 총 유급시간에 포함돼 시간당 수입이 낮아집니다.','With a paid break, the same daily salary is spread over more paid hours, so the hourly rate is lower.')}</div></div><div class="field wide"><label>근무 요일</label><div class="weekdays">${[['일',0],['월',1],['화',2],['수',3],['목',4],['금',5],['토',6]].map(([t,d])=>`<button class="weekday ${j.weekdays.includes(d)?'active':''}" data-day="${d}" type="button" aria-pressed="${j.weekdays.includes(d)}">${t}</button>`).join('')}</div></div><hr class="job-divider"><div class="fieldmark">${tr('오늘 초과근무','Today overtime')}</div><div class="form"><div class="field"><label>${tr('오늘 초과근무','Overtime today')}</label><select data-ot="enabled"><option value="off" ${!todaysOvertime(j).enabled?'selected':''}>${tr('사용 안 함 (기본값)','Off (default)')}</option><option value="on" ${todaysOvertime(j).enabled?'selected':''}>${tr('사용','On')}</option></select></div><div class="field"><label>${tr('정규 퇴근 후 추가 근무시간','Additional hours after shift')}</label><input data-ot="hours" type="number" inputmode="decimal" min="0" max="12" step=".5" value="${overtimeHours(todaysOvertime(j))}" ${!todaysOvertime(j).enabled?'disabled':''}></div><div class="field"><label>${tr('초과근무 수당 배수','Overtime pay multiplier')}</label><select data-ot="multiplier" ${!todaysOvertime(j).enabled?'disabled':''}>${[0,1,1.5,2].map(x=>'<option value="'+x+'" '+(overtimeMultiplier(todaysOvertime(j))===x?'selected':'')+'>'+x+'×</option>').join('')}<option value="custom" ${![0,1,1.5,2].includes(overtimeMultiplier(todaysOvertime(j)))?'selected':''}>${tr('직접 입력','Custom')}</option></select></div><div class="field"><label>${tr('직접 입력 배수 (0~10×)','Custom multiplier (0–10×)')}</label><input data-ot="custom" type="number" inputmode="decimal" min="0" max="10" step=".25" value="${overtimeMultiplier(todaysOvertime(j))}" ${!todaysOvertime(j).enabled||[0,1,1.5,2].includes(overtimeMultiplier(todaysOvertime(j)))?'disabled':''}></div></div><p class="job-note">${tr('정규 퇴근 후 누적되며 휴무일에는 설정한 출근 시각부터 누적됩니다. 다음 날 자동 OFF되며 지난 기록은 수입 합계에 남습니다. 0×는 추가 수입이 없고 세후 수당은 추정치입니다.','Accrues after scheduled end, or at shift start on days off. Automatically OFF tomorrow while previous earnings remain in totals. 0× earns no extra pay; net overtime is estimated.')}</p><p class="job-note">예상 연간 보너스: <b class="bonus-value">${money(annualBonus(j))}</b> · 예상 총보상: <b class="comp-value">${money(totalComp(j))}</b> · 예상 연간 실수령액: <b class="net-value">${money(annualNet(j))}</b></p><p class="job-note">${tr('휴식 제외: 설정한 시각부터 금액 정지 · 휴식 포함: 근무 시작부터 퇴근까지 계속 증가','Unpaid: counter pauses at break start · Paid: earnings continue through the break')}</p></div></article>`).join('');translateTree(el);
+ $$('.job').forEach(box=>{const j=config.jobs.find(x=>x.id===box.dataset.id);box.querySelector('[data-toggle-job]')?.addEventListener('click',()=>{const closed=!collapsedJobs.has(j.id);if(closed)collapsedJobs.add(j.id);else collapsedJobs.delete(j.id);box.classList.toggle('is-collapsed',closed);box.querySelector('[data-toggle-job]').setAttribute('aria-expanded',String(!closed));});box.querySelectorAll('[data-prop]').forEach(input=>{const prop=input.dataset.prop;const update=()=>{j[prop]=['gross','netOverride','hours','breakMinutes','raise','pretax401','aipPercent','extraBonus'].includes(prop)?Number(input.value):input.value;save();render();if(prop==='netOverride'){const btn=box.querySelector('.auto-net');if(btn)btn.disabled=false;} const title=box.querySelector('.job-title');if(prop==='name'&&title)title.textContent=j.name||'직장'};input.addEventListener('input',update);input.addEventListener('change',update)});box.querySelectorAll('[data-ot]').forEach(input=>{
+  const apply=()=>{
+   const key=overtimeDate(new Date());
+   const previous=j.overtimeRecords?.[key]||{enabled:false,hours:0,multiplier:1.5};
+   const field=input.dataset.ot,record={...previous};
+   if(field==='enabled')record.enabled=input.value==='on';
+   if(field==='hours')record.hours=Math.max(0,Math.min(12,Number(input.value)||0));
+   if(field==='multiplier')record.multiplier=input.value==='custom'?2.5:Number(input.value);
+   if(field==='custom')record.multiplier=Math.max(0,Math.min(10,Number(input.value)||0));
+   j.overtimeRecords??={};
+   j.overtimeRecords[key]=record;
+   const on=record.enabled,chosen=box.querySelector('[data-ot="multiplier"]');
+   if(field==='multiplier'){
+    const custom=box.querySelector('[data-ot="custom"]');
+    custom.disabled=!on||input.value!=='custom';custom.value=overtimeMultiplier(record);
+   }
+   if(field==='custom')chosen.value=[0,1,1.5,2].includes(record.multiplier)?String(record.multiplier):'custom';
+   if(field==='enabled'){
+    box.querySelector('[data-ot="hours"]').disabled=!on;
+    chosen.disabled=!on;
+    box.querySelector('[data-ot="custom"]').disabled=!on||chosen.value!=='custom';
+   }
+   save();render();
+  };
+  input.addEventListener('change',apply);
+  if(input.dataset.ot==='hours'||input.dataset.ot==='custom')input.addEventListener('input',apply);
+ });box.querySelectorAll('[data-day]').forEach(btn=>btn.addEventListener('click',()=>{const d=Number(btn.dataset.day);if(j.weekdays.includes(d)){if(j.weekdays.length===1)return;j.weekdays=j.weekdays.filter(x=>x!==d)}else{j.weekdays=[...j.weekdays,d].sort()}btn.classList.toggle('active',j.weekdays.includes(d));btn.setAttribute('aria-pressed',String(j.weekdays.includes(d)));save();render()}));box.querySelector('.auto-net')?.addEventListener('click',()=>{j.netOverride=null;save();render()});box.querySelector('[data-remove]')?.addEventListener('click',()=>{config.jobs=config.jobs.filter(x=>x.id!==j.id);save();drawJobs();render()});box.querySelectorAll('[data-inputhide]').forEach(btn=>btn.addEventListener('click',()=>{const key=j.id+':'+btn.dataset.inputhide;inputHidden.has(key)?inputHidden.delete(key):inputHidden.add(key);const inp=box.querySelector(`[data-prop="${btn.dataset.inputhide}"]`);inp.type=inputHidden.has(key)?'password':'number';btn.innerHTML=inputHidden.has(key)?eyeOff:eyeOn;btn.setAttribute('aria-pressed',String(inputHidden.has(key)))}))})}
 const INCOME_RANK_2026=REFERENCE_DATA.us;
 const INCOME_RANK_STATE_NAMES={"AL":"Alabama","AK":"Alaska","AZ":"Arizona","AR":"Arkansas","CA":"California","CO":"Colorado","CT":"Connecticut","DE":"Delaware","DC":"District of Columbia","FL":"Florida","GA":"Georgia","HI":"Hawaii","ID":"Idaho","IL":"Illinois","IN":"Indiana","IA":"Iowa","KS":"Kansas","KY":"Kentucky","LA":"Louisiana","ME":"Maine","MD":"Maryland","MA":"Massachusetts","MI":"Michigan","MN":"Minnesota","MS":"Mississippi","MO":"Missouri","MT":"Montana","NE":"Nebraska","NV":"Nevada","NH":"New Hampshire","NJ":"New Jersey","NM":"New Mexico","NY":"New York","NC":"North Carolina","ND":"North Dakota","OH":"Ohio","OK":"Oklahoma","OR":"Oregon","PA":"Pennsylvania","RI":"Rhode Island","SC":"South Carolina","SD":"South Dakota","TN":"Tennessee","TX":"Texas","UT":"Utah","VT":"Vermont","VA":"Virginia","WA":"Washington","WV":"West Virginia","WI":"Wisconsin","WY":"Wyoming"};
 function rankTopShare(income,points){if(!(income>0))return null;
@@ -633,22 +694,28 @@ let earningsSnapshot=null,lastStatusSecond=-1,lastStaticKey='';
 function render(){
  const now=new Date(),ts=now.getTime()/1000,day=startDay(now),dayS=day.getTime()/1000;
  let rebuilt=false;
+ if(earningsSnapshot&&earningsSnapshot.dayS!==dayS)drawJobs(); // Today's overtime controls reset on local date rollover.
  if(!earningsSnapshot||earningsSnapshot.dayS!==dayS||earningsSnapshot.revision!==earningsRevision){
   const dow=(now.getDay()+6)%7,monday=new Date(day);monday.setDate(monday.getDate()-dow);
   const weekS=monday.getTime()/1000,monthS=new Date(now.getFullYear(),now.getMonth(),1).getTime()/1000,yearS=new Date(now.getFullYear(),0,1).getTime()/1000;
   const jobs=config.jobs.map((j,i)=>{
    const sr=yearlyRate(j),todayTarget=j.weekdays.includes(day.getDay())?paidHours(j)*3600:0;
-   return {job:j,rate:sr,target:todayTarget,
-    weekBase:elapsedWork(weekS,dayS,j)*sr,
-    monthBase:elapsedWork(monthS,dayS,j)*sr,
-    yearBase:elapsedWork(yearS,dayS,j)*sr,
-    lifetimeBase:career(j,day),
+   const otWindow=overtimeWindow(overtimeDate(day),j,todaysOvertime(j,day));
+   const otRate=overtimeRate(j);
+   // Build today's intersecting overtime windows once, not every 200ms.
+   const otLiveWindows=Object.entries(j.overtimeRecords||{}).map(([key,value])=>overtimeWindow(key,j,value)).filter(w=>w&&w.end>dayS&&w.start<dayS+48*3600);
+   const otTarget=otWindow?(otWindow.end-otWindow.start)*otRate*otWindow.multiplier:0;
+   return {job:j,rate:sr,otRate,otLiveWindows,target:todayTarget,otTarget,otWindow,
+    weekBase:elapsedWork(weekS,dayS,j)*sr+overtimeAccrued(weekS,dayS,j).money,
+    monthBase:elapsedWork(monthS,dayS,j)*sr+overtimeAccrued(monthS,dayS,j).money,
+    yearBase:elapsedWork(yearS,dayS,j)*sr+overtimeAccrued(yearS,dayS,j).money,
+    lifetimeBase:career(j,day)+overtimeAccrued(Math.min(dayS,hireTime(j)/1000),dayS,j).money,
     name:j.name||'Job '+(i+1),
-    scheduled:j.weekdays.includes(day.getDay()),
+    scheduledRegular:j.weekdays.includes(day.getDay()),scheduled:j.weekdays.includes(day.getDay())||!!otWindow,
     start:dayS+secClock(j.start),end:shiftEndTime(day,j)};
   });
   earningsSnapshot={revision:earningsRevision,dayS,jobs,
-   target:jobs.reduce((v,j)=>v+j.target*j.rate,0),
+   target:jobs.reduce((v,j)=>v+j.target*j.rate+j.otTarget,0),
    allSecs:jobs.reduce((v,j)=>v+j.target,0),
    weekBase:jobs.reduce((v,j)=>v+j.weekBase,0),
    monthBase:jobs.reduce((v,j)=>v+j.monthBase,0),
@@ -668,13 +735,17 @@ function render(){
  for(const item of snapshot.jobs){
   const j=item.job,todayRaw=elapsedWork(dayS,ts,j),worked=Math.min(item.target,todayRaw);
   const active=elapsedWork(ts-1,ts,j)>0.001;
-  earned+=worked*item.rate;
-  periodEarned+=todayRaw*item.rate;
-  remaining+=Math.max(0,item.target-worked)*item.rate;
-  paidSecs+=worked;
-  jobWorkTimes.push({name:item.name,hours:worked/3600});
-  jobEndTimes.push(item);
+  const overtime=overtimeAccrued(dayS,ts,j,item.otRate,item.otLiveWindows);
+  const overtimeCurrent=overtimeAccrued(Math.max(dayS,ts-1),ts,j,item.otRate,item.otLiveWindows);
+  const currentOtRate=overtimeCurrent.activeRate;
+  earned+=worked*item.rate+overtime.money;
+  periodEarned+=todayRaw*item.rate+overtime.money;
+  remaining+=Math.max(0,item.target-worked)*item.rate+Math.max(0,item.otTarget-(item.otWindow?overtimeAccrued(item.otWindow.start,ts,j,item.otRate,item.otLiveWindows).money:0));
+  paidSecs+=worked+overtime.seconds;
+  jobWorkTimes.push({name:item.name,hours:(worked+overtime.seconds)/3600});
+  jobEndTimes.push({...item,end:item.otWindow?(item.scheduledRegular?Math.max(item.end,item.otWindow.end):item.otWindow.end):item.end});
   if(active){rate+=item.rate;working=true}
+  if(currentOtRate>0){rate+=currentOtRate;working=true}
  }
  // Live counters interpolate from midnight baseline; no annual loops on each tick.
  setMoney('today',earned,2);

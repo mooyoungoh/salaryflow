@@ -1,0 +1,65 @@
+// Execute the actual overtime functions embedded in Salary Flow with deterministic dates.
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+const html=readFileSync('index.html','utf8');
+const begin=html.indexOf('const num=('),end=html.indexOf('const TAX_STATES=',begin);
+assert(begin>0&&end>begin,'Missing overtime helpers');
+const source=html.slice(begin,end);
+for(const token of ['data-ot="enabled"','data-ot="hours"','data-ot="multiplier"','data-ot="custom"']){
+ assert(html.includes(token),'Missing overtime control '+token);
+}
+assert(html.includes('const otRate=overtimeRate(j);'),'Overtime rate should be computed once in the snapshot');
+assert(html.includes('scheduled:j.weekdays.includes(day.getDay())||!!otWindow'),'Days off with OT must be shown in shift countdown');
+assert(html.includes('overtimeAccrued(dayS,ts,j,item.otRate,item.otLiveWindows)'),'Current overtime must use cached rate');
+assert(html.includes('overtimeAccrued(weekS,dayS,j).money'),'Weekly earnings must include past OT');
+assert(html.includes('overtimeAccrued(monthS,dayS,j).money'),'Monthly earnings must include past OT');
+assert(html.includes('overtimeAccrued(yearS,dayS,j).money'),'Annual earnings must include past OT');
+assert(html.includes("if(earningsSnapshot&&earningsSnapshot.dayS!==dayS)drawJobs()"),'Tomorrow UI must reset');
+const job={id:'job1',gross:104000,weekdays:[1,2,3,4,5],hours:8,breakMode:'unpaid',breakMinutes:60,start:'09:00',overtimeRecords:{}};
+const ctx={config:{mode:'gross'},annualNet:()=>78000};
+vm.createContext(ctx);
+vm.runInContext(source+';globalThis.api={overtimeDate,overtimeWindow,overtimeRate,overtimeAccrued,todaysOvertime};',ctx);
+const {overtimeDate,overtimeWindow,overtimeRate,overtimeAccrued,todaysOvertime}=ctx.api;
+const start=new Date(2026,10,4); // Wednesday
+const date=overtimeDate(start);
+assert.equal(date,'2026-11-04');
+assert.equal(todaysOvertime(job,start).enabled,false,'Defaults OFF');
+const record={enabled:true,hours:2,multiplier:1.5};job.overtimeRecords[date]=record;
+const period=overtimeWindow(date,job,record);
+const rate=104000/(52*5*8*3600);
+const near=(a,b,message)=>assert(Math.abs(a-b)<1e-5,message+': '+a+' vs '+b);
+near(overtimeRate(job),rate,'Gross base hourly');
+assert.equal(period.start,new Date(2026,10,4,18).getTime()/1000,'Regular 9h window ends at 6pm with unpaid break');
+assert.equal(period.end,new Date(2026,10,4,20).getTime()/1000);
+const oneHour=overtimeAccrued(period.start,period.start+3600,job);
+near(oneHour.money,50*1.5,'One overtime hour at 1.5x');
+near(oneHour.seconds,3600,'One hour of work');
+near(oneHour.activeRate,rate*1.5,'Active tick rate');
+near(overtimeAccrued(period.start-3600,period.start,job).money,0,'No OT before scheduled end');
+near(overtimeAccrued(period.end,period.end+3600,job).money,0,'No OT after planned hours');
+near(overtimeAccrued(period.start,period.end+1000,job).money,150,'Two hours paid and capped');
+ctx.config.mode='net';
+near(overtimeRate(job),78000/(52*5*8*3600),'Net estimate based on salary net');
+ctx.config.mode='gross';
+record.multiplier=0;near(overtimeAccrued(period.start,period.end,job).money,0,'0x no extra earnings');
+record.multiplier=2.5;near(overtimeAccrued(period.start,period.end,job).money,250,'Custom >2x');
+assert.equal(todaysOvertime(job,new Date(2026,10,5)).enabled,false,'Next day automatically OFF, history remains');
+near(overtimeAccrued(period.start,period.end+86400,job).money,250,'Old recorded OT remains in cumulative earnings');
+record.hours=0;near(overtimeAccrued(period.start,period.end,job).money,0,'Zero hours OFF');
+record.hours=2;
+job.overtimeRecords[date]={enabled:false,hours:2,multiplier:2.5};
+near(overtimeAccrued(period.start,period.end,job).money,0,'Disabled OT ignored');
+// Overnight window preserves calendar accounting and is paid only during the recorded overtime.
+const night={...job,start:'20:00',hours:5,breakMinutes:0,weekdays:[3],overtimeRecords:{[date]:{enabled:true,hours:2,multiplier:2}}};
+const midnight=new Date(2026,10,5).getTime()/1000;
+const nightWindow=overtimeWindow(date,night,night.overtimeRecords[date]);
+assert.equal(nightWindow.start,new Date(2026,10,5,1).getTime()/1000);
+near(overtimeAccrued(midnight,midnight+3600,night).money,0,'Overnight OT not paid before shift end');
+near(overtimeAccrued(midnight+3600,midnight+7200,night).money,overtimeRate(night)*2*3600,'OT after midnight accrues');
+const saturday=overtimeDate(new Date(2026,10,7));
+const weekend={...job,weekdays:[1,2,3,4,5],overtimeRecords:{[saturday]:{enabled:true,hours:3,multiplier:2}}};
+const weekendWindow=overtimeWindow(saturday,weekend,weekend.overtimeRecords[saturday]);
+assert.equal(weekendWindow.start,new Date(2026,10,7,9).getTime()/1000,'Days off start overtime at configured shift start');
+near(overtimeAccrued(weekendWindow.start,weekendWindow.end,weekend).money,overtimeRate(weekend)*2*3*3600,'Weekend overtime earns correct payout');
+console.log('PASS: Today overtime, payout multipliers, midnight overlap, off-by-default, historical totals, net/gross rates');

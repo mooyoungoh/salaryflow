@@ -31,7 +31,9 @@ const context={
  $,
  yearlyRate:j=>j.rate,
  career:(j,now)=>context.calcElapsed(new TestDate(2026,0,1).getTime()/1000,now.getTime()/1000,j)*j.rate,
+ hireTime:j=>new TestDate(2026,0,1).getTime(),
  renderRankings:()=>staticCalls++,renderCountryRank:()=>staticCalls++,displayTax:()=>staticCalls++,syncPaychecks:()=>staticCalls++,
+ drawJobs:()=>{},
  setMoney:(k,v)=>values.set(k,v),applyPrivacy:()=>{},escaped:x=>x,
  tr:(ko,en)=>context.lang==='en'?en:ko,
 };
