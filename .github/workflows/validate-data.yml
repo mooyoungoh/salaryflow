@@ -24,6 +24,10 @@ jobs:
           node-version: '22'
       - name: Validate active datasets and regression samples
         run: node scripts/validate-data.mjs
+      - name: Check embedded fallback matches active reference data
+        run: |
+          node scripts/sync-reference-baseline.mjs --check
+          node scripts/test-reference-baseline.mjs
       - name: Verify reference status panel
         run: node scripts/test-reference-status.mjs
       - name: Verify dynamic reference years

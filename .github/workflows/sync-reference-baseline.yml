@@ -1,0 +1,60 @@
+name: Synchronize embedded fallback after reference updates
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'data/manifest.json'
+      - 'data/tax-*.json'
+      - 'data/payroll-*.json'
+      - 'data/arizona-*.json'
+      - 'data/income-us-*.json'
+      - 'data/income-world-*.json'
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: reference-fallback-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate currently published reference values
+        run: node scripts/validate-data.mjs
+      - name: Rebuild embedded offline defaults from active data
+        run: node scripts/sync-reference-baseline.mjs --write
+      - name: Verify fallback and language regression
+        run: |
+          node scripts/sync-reference-baseline.mjs --check
+          node scripts/test-reference-baseline.mjs
+          python3 scripts/validate_reference_data.py
+      - name: Create fallback-only PR if values changed
+        id: pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: data-review/sync-embedded-fallback
+          base: main
+          commit-message: 'data: synchronize embedded offline fallback with active reference snapshots'
+          title: '[Automatic] Keep built-in reference fallback in sync'
+          body: |
+            Regenerated inline safe defaults from the active verified manifest:
+            IRS federal brackets, SSA, Arizona, US income and WID world income.
+            No independent tax values were inferred; the webpage will use the
+            exact verified active reference values during JSON load failures.
+            Website: https://mooyoungoh.github.io/salaryflow/
+          add-paths: |
+            index.html
+      - name: Merge synchronized fallback
+        if: steps.pr.outputs.pull-request-url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+        run: |
+          gh pr merge "$PR_URL" --squash --delete-branch

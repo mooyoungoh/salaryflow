@@ -65,7 +65,7 @@ export function planTransition(manifest,active,candidates,today){
  }
  return {state,manifest:next,files};
 }
-function run(){
+async function run(){
  const mode=process.argv[2];
  assert(['--check','--apply'].includes(mode),'Usage: --check or --apply');
  const manifest=read('data/manifest.json');
@@ -83,7 +83,12 @@ function run(){
    else writeFileSync(path,JSON.stringify(value,null,2)+'\n');
   }
   writeFileSync('data/manifest.json',JSON.stringify(plan.manifest,null,2)+'\n');
-  console.log('Activated IRS, SSA, Arizona together. HTML built-in fallback unchanged.');
+  const {syncContent}=await import('./sync-reference-baseline.mjs');
+  const currentHtml=readFileSync('index.html','utf8');
+  const activeReference=Object.fromEntries(['tax','us','world','payroll','arizona'].map(k=>[k,read(plan.manifest[k].path)]));
+  const nextHtml=syncContent(currentHtml,plan.manifest,activeReference);
+  if(nextHtml!==currentHtml)writeFileSync('index.html',nextHtml);
+  console.log('Activated IRS, SSA, Arizona together; synchronized built-in fallback.');
  }
 }
-if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)run();
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)await run();
