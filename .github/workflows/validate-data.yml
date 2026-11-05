@@ -26,6 +26,8 @@ jobs:
         run: node scripts/validate-data.mjs
       - name: Verify reference status panel
         run: node scripts/test-reference-status.mjs
+      - name: Verify dynamic reference years
+        run: node scripts/test-dynamic-reference-years.mjs
       - name: Verify GitHub audit run panel
         run: node scripts/test-reference-audit-ui.mjs
       - name: Verify atomic tax-year rollover rules
