@@ -501,6 +501,10 @@ async function loadReferenceData(){
  const {tax,us,world,payroll,arizona}=selected;
  return {tax:tax.values,us:us.values,world:world.values,payroll,arizona,years:{tax:tax.taxYear,us:us.editionYear,usIncome:us.incomeYear,world:world.incomeYear,payroll:payroll.taxYear,arizona:arizona.taxYear}};
 }
+// Make the header's currency selector the final size before asynchronous
+// reference-data requests yield to the browser and trigger its first paint.
+// Otherwise a late native-select -> custom-button swap pushes the hero below.
+enhanceSelects(document);
 const REFERENCE_DATA=await loadReferenceData();
 if(Object.values(REFERENCE_SOURCES).some(v=>v!=='live')){
  const versions=REFERENCE_DATA.years;
