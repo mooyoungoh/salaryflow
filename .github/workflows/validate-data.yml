@@ -30,6 +30,7 @@ jobs:
           node scripts/test-job-default-collapse.mjs
           node scripts/test-month-earnings.mjs
           node scripts/test-earnings-performance.mjs
+          node scripts/test-client-performance.mjs
           node scripts/test-today-overtime.mjs
           node scripts/test-earnings-grid.mjs
           node scripts/test-dynamic-reference-years.mjs

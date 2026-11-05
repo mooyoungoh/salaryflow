@@ -22,7 +22,7 @@ class TestDate extends Date{
 }
 const values=new Map(),nodes=new Map();
 const $=selector=>{
- if(!nodes.has(selector))nodes.set(selector,{textContent:'',innerHTML:'',style:{},classList:{toggle(){}},dataset:{}});
+ if(!nodes.has(selector))nodes.set(selector,{textContent:'',innerHTML:'',style:{},classList:{toggle(){},contains(){return false}},dataset:{}});
  return nodes.get(selector);
 };
 const context={
@@ -34,7 +34,7 @@ const context={
  hireTime:j=>new TestDate(2026,0,1).getTime(),
  renderRankings:()=>staticCalls++,renderCountryRank:()=>staticCalls++,displayTax:()=>staticCalls++,syncPaychecks:()=>staticCalls++,
  drawJobs:()=>{},
- setMoney:(k,v)=>values.set(k,v),applyPrivacy:()=>{},escaped:x=>x,
+ setMoney:(k,v)=>values.set(k,v),applyPrivacy:()=>{},updateText:(k,v)=>{if($(k).textContent!==v)$(k).textContent=v},updateHtml:(k,v)=>{if($(k).innerHTML!==v)$(k).innerHTML=v},escaped:x=>x,
  tr:(ko,en)=>context.lang==='en'?en:ko,
 };
 vm.createContext(context);
