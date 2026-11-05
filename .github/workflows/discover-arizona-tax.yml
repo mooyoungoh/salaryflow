@@ -1,0 +1,52 @@
+name: Discover official Arizona tax deduction reference
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '19 15 * * 1'
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test Arizona source parser and year guard
+        run: node scripts/test-arizona-candidate.mjs
+      - name: Scan Arizona DOR and statute for official next-year amounts
+        run: node scripts/collect-arizona-candidate.mjs
+      - name: Validate current and proposed reference records
+        run: |
+          node scripts/validate-data.mjs
+          python3 scripts/validate_reference_data.py
+      - name: Open validated, inactive Arizona candidate PR
+        id: pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'data: stage official Arizona annual tax candidate'
+          branch: data-review/arizona-next-tax-year
+          base: main
+          title: '[Arizona tax candidate] State standard deduction update'
+          body: |
+            Arizona DOR highlights explicitly identify the target tax year and all
+            standard deduction amounts. Arizona statutes independently verify
+            inflation indexing, charity limits and flat state income tax rate.
+            Values outside annual change bounds are rejected.
+            Candidate only: data/manifest.json, current 2026 calculations, and
+            embedded fallback remain unchanged.
+            Activation is handled separately after IRS, SSA, and Arizona pass.
+            Site: https://mooyoungoh.github.io/salaryflow/
+          add-paths: |
+            data/candidates/arizona-*.json
+      - name: Merge verified candidate-only PR
+        if: steps.pr.outputs.pull-request-url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+        run: |
+          gh pr merge "$PR_URL" --squash --delete-branch
