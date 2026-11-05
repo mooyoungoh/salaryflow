@@ -32,6 +32,8 @@ jobs:
         run: node scripts/test-reference-status.mjs
       - name: Verify job default collapse
         run: node scripts/test-job-default-collapse.mjs
+      - name: Verify month-to-date earnings
+        run: node scripts/test-month-earnings.mjs
       - name: Verify dynamic reference years
         run: node scripts/test-dynamic-reference-years.mjs
       - name: Verify GitHub audit run panel
