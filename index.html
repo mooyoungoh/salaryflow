@@ -108,6 +108,28 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 .ref-audit-item a{display:inline-block;font-size:12px;color:#075b9c;margin-top:5px;text-decoration:underline}
 .ref-audit-hint{font-size:11px;color:#486378;margin-top:7px}
 @media(max-width:620px){.ref-audit-grid{grid-template-columns:1fr}}
+
+/* Browser-native select popups cannot be styled consistently; use accessible custom menus. */
+.sf-select-wrap{position:relative;display:block;width:100%;min-width:0}
+.sf-select-wrap .sf-native-select{position:absolute!important;width:1px!important;height:1px!important;min-height:0!important;padding:0!important;margin:0!important;opacity:0!important;pointer-events:none!important;clip-path:inset(50%)!important;overflow:hidden!important}
+.sf-select-trigger{width:100%;min-width:0;min-height:43px;display:flex;align-items:center;gap:10px;justify-content:space-between;text-align:left;background:#fff;color:#243c4d;border:1px solid #c9d9e4;border-radius:10px;padding:10px 11px;font:inherit;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
+.sf-select-trigger:hover:not(:disabled){border-color:#69a58f;background:#f6fffa}
+.sf-select-trigger:focus-visible{outline:2px solid #16846e;outline-offset:2px}
+.sf-select-trigger[aria-expanded="true"]{border-color:#16846e;box-shadow:0 0 0 3px #16846e24}
+.sf-select-trigger:disabled{cursor:not-allowed;opacity:.53;background:#f0f3f5}
+.sf-select-value{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.sf-select-chevron{width:9px;height:9px;flex:0 0 9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);opacity:.7;transition:transform .15s}
+.sf-select-trigger[aria-expanded="true"] .sf-select-chevron{transform:rotate(225deg) translate(-2px,-2px)}
+.sf-select-menu{position:fixed;z-index:10000;box-sizing:border-box;padding:6px;max-height:min(320px,48vh);overflow-y:auto;overscroll-behavior:contain;background:#fff;border:1px solid #c9d9e4;border-radius:13px;box-shadow:0 16px 45px #18334f30,0 3px 10px #18334f18}
+.sf-select-option{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:37px;padding:9px 11px;border:0;border-radius:8px;background:transparent;color:#283f51;text-align:left;font:inherit;font-size:13px;cursor:pointer;white-space:normal}
+.sf-select-option:hover,.sf-select-option.is-focused{background:#eaf5f0;color:#126849}
+.sf-select-option[aria-selected="true"]{background:#e1f3e9;color:#086246;font-weight:750}
+.sf-select-option[aria-selected="true"]::after{content:"✓";font-weight:800;flex:0 0 auto}
+.sf-select-option:disabled{opacity:.4;cursor:not-allowed}
+.overtime-panel .sf-select-trigger{border-color:#96bcae}
+.tax-panel .sf-select-trigger{background:#fff;border-color:#b8a8cf}
+@media(max-width:520px){.sf-select-menu{max-height:min(280px,45vh)}}
+@media(prefers-reduced-motion:reduce){.sf-select-trigger,.sf-select-chevron{transition:none}}
 </style>
 </head>
 <body><main class="wrap">
@@ -146,6 +168,163 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 <script>
 (async()=>{'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+// Enhance native selects without replacing their data model or change handlers.
+// All selection changes dispatch the original "change" event so current logic stays intact.
+let activeSelectMenu=null,customSelectCounter=0;
+const enhancedSelects=new Set();
+function closeCustomSelect(restoreFocus=false){
+ if(!activeSelectMenu)return;
+ const {trigger,menu}=activeSelectMenu;
+ menu.remove();trigger.setAttribute('aria-expanded','false');
+ activeSelectMenu=null;
+ if(restoreFocus&&trigger.isConnected)trigger.focus();
+}
+function syncCustomSelect(select){
+ const wrap=select.closest('.sf-select-wrap');
+ if(!wrap)return;
+ const button=wrap.querySelector('.sf-select-trigger');
+ const selected=select.selectedOptions[0];
+ const label=selected?selected.textContent.trim():'';
+ const text=button.querySelector('.sf-select-value');
+ if(text.textContent!==label)text.textContent=label;
+ if(button.disabled!==select.disabled)button.disabled=select.disabled;
+ if(button.getAttribute('aria-label')!==select.getAttribute('aria-label')&&select.getAttribute('aria-label')){
+  button.setAttribute('aria-label',select.getAttribute('aria-label'));
+ }
+ if(activeSelectMenu?.select===select){
+  if(select.disabled){closeCustomSelect();return;}
+  for(const option of activeSelectMenu.menu.querySelectorAll('.sf-select-option')){
+   const current=option.dataset.value===select.value;
+   option.setAttribute('aria-selected',String(current));
+  }
+ }
+}
+function syncCustomSelects(root=document){
+ const nodes=root.querySelectorAll?.('.sf-native-select')||[];
+ nodes.forEach(syncCustomSelect);
+}
+function positionCustomSelect(){
+ if(!activeSelectMenu)return;
+ const {trigger,menu}=activeSelectMenu;
+ if(!trigger.isConnected){closeCustomSelect();return;}
+ const r=trigger.getBoundingClientRect();
+ const margin=10,width=Math.max(160,Math.min(r.width,window.innerWidth-2*margin));
+ const left=Math.max(margin,Math.min(r.left,window.innerWidth-width-margin));
+ menu.style.width=width+'px';menu.style.left=left+'px';
+ const bottomRoom=window.innerHeight-r.bottom-8;
+ const topRoom=r.top-8;
+ const goUp=bottomRoom<Math.min(220,menu.scrollHeight)&&topRoom>bottomRoom;
+ const limit=Math.max(90,Math.min(320,(goUp?topRoom:bottomRoom)-margin));
+ menu.style.maxHeight=limit+'px';
+ if(goUp)menu.style.top=Math.max(margin,r.top-menu.offsetHeight-5)+'px';
+ else menu.style.top=Math.min(window.innerHeight-margin,r.bottom+5)+'px';
+}
+function openCustomSelect(select,trigger){
+ if(activeSelectMenu?.select===select){closeCustomSelect();return;}
+ closeCustomSelect();
+ if(select.disabled)return;
+ const menu=document.createElement('div');
+ menu.className='sf-select-menu';
+ const id='sf-options-'+(++customSelectCounter);
+ menu.id=id;menu.setAttribute('role','listbox');
+ menu.setAttribute('aria-label',select.getAttribute('aria-label')||select.labels?.[0]?.textContent?.trim()||'Options');
+ let focused=Math.max(0,select.selectedIndex);
+ const options=[...select.options];
+ for(let i=0;i<options.length;i++){
+  const item=options[i],button=document.createElement('button');
+  button.type='button';button.className='sf-select-option';
+  button.setAttribute('role','option');button.id=id+'-'+i;
+  button.setAttribute('aria-selected',String(item.selected));
+  button.dataset.value=item.value;
+  button.textContent=item.textContent;
+  button.disabled=item.disabled;
+  button.tabIndex=-1;
+  button.addEventListener('pointermove',()=>{focused=i;setFocused()});
+  button.addEventListener('click',()=>{
+   if(item.disabled)return;
+   const changed=select.value!==item.value;
+   select.value=item.value;
+   closeCustomSelect(true);
+   syncCustomSelect(select);
+   if(changed)select.dispatchEvent(new Event('change',{bubbles:true}));
+   syncCustomSelects();
+  });
+  menu.appendChild(button);
+ }
+ function setFocused(scroll=false){
+  const buttons=[...menu.querySelectorAll('.sf-select-option')];
+  buttons.forEach((b,i)=>b.classList.toggle('is-focused',i===focused));
+  trigger.setAttribute('aria-activedescendant',id+'-'+focused);
+  if(scroll)buttons[focused]?.scrollIntoView({block:'nearest'});
+ }
+ document.body.appendChild(menu);
+ activeSelectMenu={select,trigger,menu,onKey(event){
+  if(event.key==='Escape'){event.preventDefault();closeCustomSelect(true);return;}
+  if(['ArrowDown','ArrowUp','Home','End','Enter',' '].includes(event.key)){
+   event.preventDefault();
+   if(event.key==='Enter'||event.key===' '){menu.querySelectorAll('.sf-select-option')[focused]?.click();return;}
+   if(event.key==='Home')focused=0;
+   else if(event.key==='End')focused=options.length-1;
+   else{
+    const delta=event.key==='ArrowDown'?1:-1;
+    let candidate=focused;
+    for(let i=0;i<options.length;i++){
+     candidate=(candidate+delta+options.length)%options.length;
+     if(!options[candidate].disabled){focused=candidate;break;}
+    }
+   }
+   if(options[focused]?.disabled)focused=options.findIndex(o=>!o.disabled);
+   setFocused(true);
+   return;
+  }
+  if(event.key.length===1&&!event.ctrlKey&&!event.metaKey&&!event.altKey){
+   const char=event.key.toLocaleLowerCase();
+   const found=options.findIndex((o,i)=>!o.disabled&&i>focused&&o.textContent.trim().toLocaleLowerCase().startsWith(char));
+   const wrapFound=options.findIndex(o=>!o.disabled&&o.textContent.trim().toLocaleLowerCase().startsWith(char));
+   const next=found>=0?found:wrapFound;
+   if(next>=0){focused=next;setFocused(true);}
+  }
+ }};
+ trigger.setAttribute('aria-controls',id);
+ trigger.setAttribute('aria-expanded','true');
+ setFocused(true);positionCustomSelect();
+}
+function enhanceSelects(root=document){
+ const selects=root.querySelectorAll?.('select:not(.sf-native-select)')||[];
+ selects.forEach(select=>{
+  if(select.closest('.sf-select-wrap'))return;
+  const wrap=document.createElement('span');
+  wrap.className='sf-select-wrap';
+  const button=document.createElement('button');
+  button.className='sf-select-trigger';button.type='button';
+  button.setAttribute('aria-haspopup','listbox');button.setAttribute('aria-expanded','false');
+  const value=document.createElement('span');value.className='sf-select-value';
+  const chevron=document.createElement('span');chevron.className='sf-select-chevron';chevron.setAttribute('aria-hidden','true');
+  button.append(value,chevron);
+  select.parentNode.insertBefore(wrap,select);
+  wrap.append(select,button);
+  select.classList.add('sf-native-select');
+  select.tabIndex=-1;select.setAttribute('aria-hidden','true');
+  button.addEventListener('click',()=>openCustomSelect(select,button));
+  button.addEventListener('keydown',event=>{
+   if(event.key==='ArrowDown'||event.key==='ArrowUp'||event.key==='Enter'||event.key===' '){
+    if(!activeSelectMenu||activeSelectMenu.select!==select){event.preventDefault();openCustomSelect(select,button);}
+   }
+  });
+  select.addEventListener('change',()=>syncCustomSelect(select));
+  enhancedSelects.add(select);
+  syncCustomSelect(select);
+ });
+}
+document.addEventListener('keydown',event=>{
+ if(activeSelectMenu&&activeSelectMenu.onKey(event)&&false)return;
+});
+document.addEventListener('pointerdown',event=>{
+ if(activeSelectMenu&&!activeSelectMenu.menu.contains(event.target)&&!activeSelectMenu.trigger.contains(event.target))closeCustomSelect();
+});
+window.addEventListener('resize',positionCustomSelect);
+window.addEventListener('scroll',positionCustomSelect,true);
+
 // Generated from active data/manifest.json. Update only via scripts/sync-reference-baseline.mjs.
 const REFERENCE_BASELINE={"tax":{"schema":1,"taxYear":2026,"source":"https://www.irs.gov/filing/federal-income-tax-rates-and-brackets","retrieval":"snapshot from existing Salary Flow code; verify before changing","values":{"single":{"ded":16100,"br":[12400,50400,105700,201775,256225,640600]},"mfj":{"ded":32200,"br":[24800,100800,211400,403550,512450,768700]},"hoh":{"ded":24150,"br":[17700,67450,105700,201750,256200,640600]},"mfs":{"ded":16100,"br":[12400,50400,105700,201775,256225,384350]}}},"us":{"schema":1,"editionYear":2026,"incomeYear":2025,"source":"https://dqydj.com/income-by-state/","retrieval":"snapshot from existing Salary Flow code; verify before changing","values":{"AL":[30000,54000,88943,408699],"AK":[32010,61600,104001,371300],"AZ":[30500,55000,92866,604425],"AR":[27500,50000,80000,458400],"CA":[31200,60000,109000,503670],"CO":[35111,63000,103370,593201],"CT":[31360,65002,117640,707913],"DE":[30006,56031,97010,462000],"DC":[48301,90705,150610,609024],"FL":[30000,50101,88000,509999],"GA":[30000,52000,95000,485000],"HI":[30010,54005,92020,400052],"ID":[29552,52000,85400,359100],"IL":[32001,60000,102000,522500],"IN":[28501,52020,86002,368196],"IA":[30000,55024,90125,494250],"KS":[30021,52510,90156,417260],"KY":[27505,50000,85511,363850],"LA":[25000,50000,79005,407600],"ME":[34700,61040,101688,399865],"MD":[35500,67600,120607,501727],"MA":[35000,65000,120001,692500],"MI":[26096,50402,90505,720000],"MN":[30500,55650,94396,454650],"MS":[25000,45180,75100,400000],"MO":[30008,52000,85000,295400],"MT":[30000,55010,94183,511520],"NE":[35000,60000,97810,651200],"NV":[30150,52500,86165,520091],"NH":[35040,61120,104007,600000],"NJ":[35005,67206,127325,873000],"NM":[24000,48005,83655,358000],"NY":[30017,57904,100515,553012],"NC":[30000,53270,91454,501021],"ND":[33000,57005,96000,360000],"OH":[28783,53850,93570,496000],"OK":[27560,50000,81152,439601],"OR":[30000,57015,99320,518100],"PA":[33000,57968,96027,510654],"RI":[30000,62000,100421,532715],"SC":[29502,54000,90666,571022],"SD":[30000,55861,85468,352801],"TN":[30000,52001,91200,378038],"TX":[27501,52000,95324,510000],"UT":[29940,54060,94000,533100],"VT":[35051,60000,93152,411709],"VA":[30503,60000,112701,457800],"WA":[38020,71111,119875,541500],"WV":[29000,50000,81621,376000],"WI":[30730,55370,87251,504800],"WY":[28010,55602,93650,415100],"US":[30000,55584,99500,507102]}},"world":{"schema":1,"incomeYear":2024,"source":"https://wid.world/data/","retrieval":"snapshot from existing Salary Flow code; verify before changing","values":{"KR":{"name":"South Korea","ko":"대한민국","currency":"KRW","points":[17928549,33572879,55369466,89108078,117851802,247605837]},"JP":{"name":"Japan","ko":"일본","currency":"JPY","points":[1764317,3871255,4708274,6977260,15226777,43387598]},"CA":{"name":"Canada","ko":"캐나다","currency":"CAD","points":[30504,65154,108654,168970,230182,444266]},"GB":{"name":"United Kingdom","ko":"영국","currency":"GBP","points":[23061,36348,55598,85995,118856,238788]},"AU":{"name":"Australia","ko":"호주","currency":"AUD","points":[37924,85031,141068,214259,277451,563430]},"FR":{"name":"France","ko":"프랑스","currency":"EUR","points":[20756,37524,56638,82817,107541,233032]},"ES":{"name":"Spain","ko":"스페인","currency":"EUR","points":[17964,27803,40634,57819,78634,163711]},"IT":{"name":"Italy","ko":"이탈리아","currency":"EUR","points":[17682,30296,45044,65922,90977,171078]},"US":{"name":"United States","ko":"미국","currency":"USD","points":[25450,52806,100188,174245,253031,583732]}}}};
 REFERENCE_BASELINE.payroll={"schema":1,"taxYear":2026,"source":"https://www.ssa.gov/news/en/cola/factsheets/2026.html","retrieval":"SSA official 2026 COLA factsheet; employee payroll tax rates and Social Security taxable maximum. Additional Medicare thresholds follow IRS law.","socialSecurityWageBase":184500,"socialSecurityRate":0.062,"medicareRate":0.0145,"additionalMedicareRate":0.009,"additionalMedicareThresholds":{"single":200000,"mfj":250000,"mfs":125000,"hoh":200000}};
