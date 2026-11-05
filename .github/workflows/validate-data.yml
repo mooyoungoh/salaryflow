@@ -32,6 +32,7 @@ jobs:
           node scripts/test-earnings-performance.mjs
           node scripts/test-client-performance.mjs
           node scripts/test-today-overtime.mjs
+          node scripts/test-recurring-overtime.mjs
           node scripts/test-overtime-layout.mjs
           node scripts/test-overtime-inputs.mjs
           node scripts/test-custom-select.mjs
