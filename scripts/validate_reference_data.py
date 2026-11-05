@@ -83,6 +83,26 @@ for kind in TYPES:
                       f"arizona: {key}.{filing} invalid")
     print(f"Checked {kind}: {rel}")
 
+# Review-only candidates are versioned but must NEVER affect the active manifest.
+active_payroll = json.loads((ROOT / manifest["payroll"]["path"]).read_text(encoding="utf-8"))
+for candidate_path in (ROOT / "data/candidates").glob("payroll-*.json"):
+    candidate = json.loads(candidate_path.read_text(encoding="utf-8"))
+    year_from_name = int(candidate_path.stem.split("-")[-1])
+    check(candidate.get("taxYear") == year_from_name, f"{candidate_path.name}: year mismatch")
+    if year_from_name > active_payroll["taxYear"]:
+        check(candidate.get("schema") == 1, f"{candidate_path.name}: bad schema")
+        base = candidate.get("socialSecurityWageBase", 0)
+        previous = active_payroll["socialSecurityWageBase"]
+        check(type(base) is int and base % 300 == 0 and previous <= base <= previous * 1.2,
+              f"{candidate_path.name}: implausible cap")
+        check(candidate.get("source", "").startswith("https://www.ssa.gov/"),
+              f"{candidate_path.name}: source is not SSA")
+        for key in ("socialSecurityRate", "medicareRate", "additionalMedicareRate",
+                    "additionalMedicareThresholds"):
+            check(candidate.get(key) == active_payroll.get(key),
+                  f"{candidate_path.name}: unexpected change to {key}")
+    print(f"Checked candidate: {candidate_path.name}")
+
 # Inline fallback is mandatory: the site must start even when JSON fetches fail.
 index = (ROOT / "index.html").read_text(encoding="utf-8")
 check("const REFERENCE_BASELINE=" in index, "HTML baseline missing")
