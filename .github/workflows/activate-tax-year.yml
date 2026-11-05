@@ -45,9 +45,10 @@ jobs:
             All three current-year datasets have validated matching years, official source domains,
             provenance, acceptable year-over-year ranges, and passed full regression checks.
             This changes IRS + Payroll + Arizona in a single commit. US/WID rankings and the
-            embedded offline fallback remain unchanged.
+            embedded offline fallback is synchronized from the validated active datasets.
             Site after merge: https://mooyoungoh.github.io/salaryflow/
           add-paths: |
+            index.html
             data/manifest.json
             data/tax-*.json
             data/payroll-*.json
