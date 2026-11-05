@@ -1095,13 +1095,17 @@ function render(){
    const otWindow=overtimeWindow(overtimeDate(day),j,todaysOvertime(j,day));
    const otRate=overtimeRate(j);
    // Build today's intersecting overtime windows once, not every 200ms.
-   const otLiveWindows=overtimeWindows(j,dayS,dayS+48*3600);
+   // Compile dated overtime once per settings/day change, then reuse it for all
+   // period baselines and live calculations instead of rescanning weekly rules.
+   const historyStart=Math.min(weekS,monthS,yearS,Math.min(dayS,hireTime(j)/1000));
+   const otAllWindows=overtimeWindows(j,historyStart,dayS+48*3600);
+   const otLiveWindows=otAllWindows.filter(w=>w.end>dayS&&w.start<dayS+48*3600);
    const otTarget=otWindow?(otWindow.end-otWindow.start)*otRate*otWindow.multiplier:0;
    return {job:j,rate:sr,clock:cachedTodayWorkClock(day,j),otRate,otLiveWindows,target:todayTarget,otTarget,otWindow,
-    weekBase:elapsedWork(weekS,dayS,j)*sr+overtimeAccrued(weekS,dayS,j).money,
-    monthBase:elapsedWork(monthS,dayS,j)*sr+overtimeAccrued(monthS,dayS,j).money,
-    yearBase:elapsedWork(yearS,dayS,j)*sr+overtimeAccrued(yearS,dayS,j).money,
-    lifetimeBase:career(j,day)+overtimeAccrued(Math.min(dayS,hireTime(j)/1000),dayS,j).money,
+    weekBase:elapsedWork(weekS,dayS,j)*sr+overtimeAccrued(weekS,dayS,j,otRate,otAllWindows).money,
+    monthBase:elapsedWork(monthS,dayS,j)*sr+overtimeAccrued(monthS,dayS,j,otRate,otAllWindows).money,
+    yearBase:elapsedWork(yearS,dayS,j)*sr+overtimeAccrued(yearS,dayS,j,otRate,otAllWindows).money,
+    lifetimeBase:career(j,day)+overtimeAccrued(Math.min(dayS,hireTime(j)/1000),dayS,j,otRate,otAllWindows).money,
     name:j.name||'Job '+(i+1),
     scheduledRegular:j.weekdays.includes(day.getDay()),scheduled:j.weekdays.includes(day.getDay())||!!otWindow,
     start:dayS+secClock(j.start),end:shiftEndTime(day,j)};
