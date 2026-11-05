@@ -34,6 +34,8 @@ jobs:
         run: node scripts/test-job-default-collapse.mjs
       - name: Verify month-to-date earnings
         run: node scripts/test-month-earnings.mjs
+      - name: Verify two-by-two earnings grid
+        run: node scripts/test-earnings-grid.mjs
       - name: Verify dynamic reference years
         run: node scripts/test-dynamic-reference-years.mjs
       - name: Verify GitHub audit run panel
