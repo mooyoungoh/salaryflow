@@ -11,10 +11,12 @@ const apply=html.match(/function applyPrivacy\(\)\{[\s\S]*?\}\nfunction setMoney
 assert(apply,'Privacy update function missing');
 const privacyCode=apply[0].replace(/\nfunction setMoney\($/,'');
 assert(privacyCode.includes('button.dataset.concealed!==String(concealed)'),'Eye DOM should only replace SVG on state change');
-const handler=html.match(/\$\$\('\[data-hide\]'\)\.forEach\([\s\S]*?\);?\$\('#privacyAll'\)\.onclick/);
-assert(handler,'Privacy click handler missing');
-assert(handler[0].includes('applyPrivacy()}));'),'Click should update immediately');
-assert(!handler[0].includes('applyPrivacy();render()'),'Click must not trigger expensive full render');
+const clickStart=html.indexOf("$$('[data-hide]').forEach(");
+const clickEnd=html.indexOf("$('#privacyAll').onclick",clickStart);
+assert(clickStart>=0&&clickEnd>clickStart,'Privacy click handler missing');
+const handler=html.slice(clickStart,clickEnd);
+assert(handler.includes('applyPrivacy()}));'),'Click should update immediately');
+assert(!handler.includes('applyPrivacy();render()'),'Click must not trigger expensive full render');
 const elems=new Map();
 let svgWrites=0;
 const makeEl=()=>({
