@@ -663,12 +663,13 @@ function render(){
   lastStaticKey=staticKey;
  }
  const snapshot=earningsSnapshot;
- let earned=0,remaining=0,rate=0,paidSecs=0,working=false;
+ let earned=0,periodEarned=0,remaining=0,rate=0,paidSecs=0,working=false;
  const jobWorkTimes=[],jobEndTimes=[];
  for(const item of snapshot.jobs){
-  const j=item.job,worked=Math.min(item.target,elapsedWork(dayS,ts,j));
+  const j=item.job,todayRaw=elapsedWork(dayS,ts,j),worked=Math.min(item.target,todayRaw);
   const active=elapsedWork(ts-1,ts,j)>0.001;
   earned+=worked*item.rate;
+  periodEarned+=todayRaw*item.rate;
   remaining+=Math.max(0,item.target-worked)*item.rate;
   paidSecs+=worked;
   jobWorkTimes.push({name:item.name,hours:worked/3600});
@@ -682,10 +683,10 @@ function render(){
  if(rebuilt||second!==lastStatusSecond||staticChanged){
   setMoney('target',snapshot.target,0);
   setMoney('rate',rate,2,'/s');
-  setMoney('lifetime',snapshot.lifetimeBase+earned,0);
-  setMoney('week',snapshot.weekBase+earned,0);
-  setMoney('month',snapshot.monthBase+earned,0);
-  setMoney('year',snapshot.yearBase+earned,0);
+  setMoney('lifetime',snapshot.lifetimeBase+periodEarned,0);
+  setMoney('week',snapshot.weekBase+periodEarned,0);
+  setMoney('month',snapshot.monthBase+periodEarned,0);
+  setMoney('year',snapshot.yearBase+periodEarned,0);
   setMoney('day',snapshot.target,0);
   $('#worked').innerHTML=jobWorkTimes.map(x=>'<span class="worked-item"><span class="worked-name" title="'+escaped(x.name)+'">'+escaped(x.name)+'</span><span>'+x.hours.toFixed(2)+tr('시간','h')+'</span></span>').join('<span class="worked-separator" aria-hidden="true">|</span>')+(jobWorkTimes.length?'<span class="worked-separator" aria-hidden="true">|</span>':'')+'<span class="worked-item worked-total">'+tr('오늘 누적 근무','Total worked today')+' '+(paidSecs/3600).toFixed(2)+tr('시간','h')+'</span>';
   const scheduledEnd=jobEndTimes.filter(x=>x.scheduled);
