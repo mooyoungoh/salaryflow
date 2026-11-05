@@ -39,7 +39,7 @@ const job={overtimeRecords:{}};
 let saves=0,renders=0;
 const ctx={
  box,j:job,save:()=>saves++,render:()=>renders++,
- overtimeDate:()=> '2026-11-04',syncCustomSelect:()=>{},
+ overtimeDate:()=> '2026-11-04',todaysOvertime:()=>({enabled:false,hours:0,multiplier:1.5}),syncCustomSelect:()=>{},
  overtimeMultiplier:r=>Number.isFinite(Number(r?.multiplier))?Math.max(0,Math.min(10,Number(r.multiplier))):1.5
 };
 vm.createContext(ctx);
