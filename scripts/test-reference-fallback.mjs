@@ -1,50 +1,106 @@
-// Test the exact inline reference-data loader with simulated network failures.
-// Uses a sandboxed VM and mock fetch: no browser, no production network.
+// Execute the exact browser loader in a VM with deterministic network/cache failures.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+
 const html=readFileSync('index.html','utf8');
-const first=html.indexOf('const REFERENCE_BASELINE=');
-const last=html.indexOf('\nconst KEY=',first);
-assert(first>0&&last>first,'Inline fallback is missing');
-const slice=html.slice(first,last);
-const exec=slice.slice(0,slice.indexOf('const REFERENCE_DATA=await loadReferenceData();'));
+const begin=html.indexOf('const REFERENCE_BASELINE=');
+const end=html.indexOf('const REFERENCE_DATA=await loadReferenceData();',begin);
+assert(begin>0&&end>begin,'Browser reference loader missing');
+const loader=html.slice(begin,end);
 const manifest=JSON.parse(readFileSync('data/manifest.json','utf8'));
-const files=Object.fromEntries(['tax','us','world','payroll','arizona'].map(k=>[manifest[k].path,JSON.parse(readFileSync(manifest[k].path,'utf8'))]));
-async function scenario(name,network,previousCache,expect){
+const keys=['tax','payroll','arizona'];
+const types=[...keys,'us','world'];
+const files=Object.fromEntries(types.map(k=>[manifest[k].path,JSON.parse(readFileSync(manifest[k].path,'utf8'))]));
+const baselineYear=manifest.tax.year;
+const clone=v=>JSON.parse(JSON.stringify(v));
+const futureManifest=clone(manifest),futureFiles=clone(files);
+for(const k of keys){
+ const data=clone(files[manifest[k].path]);
+ data.taxYear=baselineYear+1;
+ futureManifest[k]={path:'data/'+k+'-'+data.taxYear+'.json',year:data.taxYear};
+ futureFiles[futureManifest[k].path]=data;
+}
+futureFiles[futureManifest.tax.path].values.single.ded+=100;
+futureFiles[futureManifest.payroll.path].socialSecurityWageBase+=7800;
+futureFiles[futureManifest.arizona.path].standardDeduction.single+=250;
+const futureBundle=Object.fromEntries(keys.map(k=>[k,futureFiles[futureManifest[k].path]]));
+const currentBundle=Object.fromEntries(keys.map(k=>[k,files[manifest[k].path]]));
+const priorKey='salary-flow-reference-last-good-v1';
+const bundleKey='salary-flow-tax-bundle-last-good-v2';
+
+async function scenario(name,config={}){
+ const {activeManifest=manifest,networkFiles=files,down=[],bad={},storedLegacy=null,storedBundle=null,
+  taxSource='live',taxYear=baselineYear,usSource='live',worldSource='live',persistedYear=null}=config;
  const saved=new Map();
- if(previousCache)saved.set('salary-flow-reference-last-good-v1',JSON.stringify(previousCache));
- const context={
+ if(storedLegacy)saved.set(priorKey,JSON.stringify(storedLegacy));
+ if(storedBundle)saved.set(bundleKey,JSON.stringify(storedBundle));
+ const ctx={
   localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},
   console:{warn:()=>{}},
-  AbortController,
-  setTimeout,
-  clearTimeout,
-  fetch:async p=>{
-   if(network==='all-down')throw Error('Network offline');
-   if(p==='./data/manifest.json')return{ok:true,json:async()=>manifest};
-   const name=p.replace(/^\.\//,'');
-   if(network===name)throw Error('Broken file: '+name);
-   if(network==='corrupt-world'&&name===manifest.world.path)return{ok:true,json:async()=>({schema:1,values:{}})};
-   assert(files[name],'Unexpected remote path: '+p);
-   return{ok:true,json:async()=>files[name]};
+  AbortController,setTimeout,clearTimeout,
+  fetch:async url=>{
+   if(down.includes('*')||down.includes(url))throw Error('Network unavailable '+url);
+   if(url==='./data/manifest.json')return{ok:true,json:async()=>clone(activeManifest)};
+   const path=url.replace(/^\.\//,'');
+   if(Object.hasOwn(bad,path))return{ok:true,json:async()=>clone(bad[path])};
+   if(!networkFiles[path])throw Error('No fixture '+path);
+   return{ok:true,json:async()=>clone(networkFiles[path])};
   }
  };
- vm.createContext(context);
- vm.runInContext(exec+';globalThis.runLoader=loadReferenceData;globalThis.sources=REFERENCE_SOURCES;',context);
- const actual=await context.runLoader();
- assert.deepEqual(JSON.parse(JSON.stringify(actual.years)),expect.years,name+' years mismatch');
- assert.deepEqual(JSON.parse(JSON.stringify(context.sources)),expect.sources,name+' source mismatch');
- assert(actual.tax.single.br.length===6&&actual.us.US.length===4&&actual.world.KR.points.length===6&&actual.payroll.socialSecurityWageBase===184500&&actual.arizona.standardDeduction.single===15750,name+' data incomplete');
+ vm.createContext(ctx);
+ vm.runInContext(loader+';globalThis.runLoader=loadReferenceData;globalThis.sources=REFERENCE_SOURCES;',ctx);
+ const actual=await ctx.runLoader();
+ const source=JSON.parse(JSON.stringify(ctx.sources));
+ for(const k of keys){
+  assert.equal(source[k],taxSource,name+': '+k+' source must match bundle');
+  assert.equal(actual.years[k],taxYear,name+': '+k+' year must match bundle');
+ }
+ assert.equal(source.us,usSource,name+': US source');
+ assert.equal(source.world,worldSource,name+': WID source');
+ assert.equal(actual.years.us,manifest.us.year);
+ assert.equal(actual.years.world,manifest.world.year);
+ const persisted=JSON.parse(saved.get(bundleKey)||'null');
+ assert.equal(persisted?.tax.taxYear??null,persistedYear,name+': validated bundle cache must be updated atomically');
  console.log('PASS '+name);
 }
-const baseline={years:{tax:2026,us:2026,usIncome:2025,world:2024,payroll:2026,arizona:2026},sources:{tax:'default',us:'default',world:'default',payroll:'default',arizona:'default'}};
-await scenario('all-json-and-manifest-down','all-down',null,baseline);
-await scenario('all-current-json-available',null,null,{years:baseline.years,sources:{tax:'live',us:'live',world:'live',payroll:'live',arizona:'live'}});
-await scenario('world-json-broken','corrupt-world',null,{years:baseline.years,sources:{tax:'live',us:'live',world:'default',payroll:'live',arizona:'live'}});
-await scenario('world-json-fails-but-cached-good',manifest.world.path,{world:files[manifest.world.path]},{years:baseline.years,sources:{tax:'live',us:'live',world:'cached',payroll:'live',arizona:'live'}});
-await scenario('offline-but-saved-good','all-down',{tax:files[manifest.tax.path],us:files[manifest.us.path],world:files[manifest.world.path],payroll:files[manifest.payroll.path],arizona:files[manifest.arizona.path]},{years:baseline.years,sources:{tax:'cached',us:'cached',world:'cached',payroll:'cached',arizona:'cached'}});
 
-await scenario('payroll-json-broken',manifest.payroll.path,null,{years:baseline.years,sources:{tax:'live',us:'live',world:'live',payroll:'default',arizona:'live'}});
-
-await scenario('arizona-json-broken',manifest.arizona.path,null,{years:baseline.years,sources:{tax:'live',us:'live',world:'live',payroll:'live',arizona:'default'}});
+await scenario('all-current-live',{persistedYear:baselineYear});
+await scenario('fully-published-next-year',{activeManifest:futureManifest,networkFiles:futureFiles,taxYear:baselineYear+1,persistedYear:baselineYear+1});
+await scenario('one-failed-file-falls-back-to-complete-old-cache',{
+ activeManifest:futureManifest,networkFiles:futureFiles,down:['./'+futureManifest.arizona.path],
+ storedBundle:currentBundle,taxSource:'cached',persistedYear:baselineYear
+});
+await scenario('one-failed-file-uses-matching-new-cache',{
+ activeManifest:futureManifest,networkFiles:futureFiles,down:['./'+futureManifest.payroll.path],
+ storedBundle:futureBundle,taxSource:'cached',taxYear:baselineYear+1,persistedYear:baselineYear+1
+});
+await scenario('corrupt-single-file-never-mixes-years',{
+ activeManifest:futureManifest,networkFiles:futureFiles,bad:{[futureManifest.arizona.path]:{...futureBundle.arizona,taxYear:baselineYear}},
+ taxSource:'default',persistedYear:null
+});
+await scenario('manifest-states-mismatched-years-reject-all-live',{
+ activeManifest:{...futureManifest,arizona:manifest.arizona},networkFiles:futureFiles,
+ taxSource:'default',persistedYear:null
+});
+await scenario('legacy-three-way-cache-migrated-only-when-coherent',{
+ activeManifest:futureManifest,networkFiles:futureFiles,down:['./'+futureManifest.tax.path],
+ storedLegacy:currentBundle,taxSource:'cached',persistedYear:baselineYear
+});
+await scenario('legacy-mixed-year-cache-is-rejected',{
+ activeManifest:futureManifest,networkFiles:futureFiles,down:['./'+futureManifest.tax.path],
+ storedLegacy:{...currentBundle,payroll:futureBundle.payroll},taxSource:'default',persistedYear:null
+});
+await scenario('offline-uses-complete-cache',{
+ down:['*'],storedBundle:currentBundle,taxSource:'cached',usSource:'default',worldSource:'default',persistedYear:baselineYear
+});
+await scenario('offline-without-cache-uses-built-in-triple',{
+ down:['*'],taxSource:'default',usSource:'default',worldSource:'default',persistedYear:null
+});
+await scenario('WID-can-fail-without-affecting-tax-bundle',{
+ down:['./'+manifest.world.path],taxSource:'live',worldSource:'default',persistedYear:baselineYear
+});
+await scenario('US-can-use-cache-independently',{
+ down:['./'+manifest.us.path],storedLegacy:{us:files[manifest.us.path]},
+ taxSource:'live',usSource:'cached',persistedYear:baselineYear
+});
