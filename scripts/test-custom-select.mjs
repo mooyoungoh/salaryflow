@@ -47,6 +47,7 @@ class E{
   return [];
  }
  querySelector(sel){return this.children.find(e=>e.className===sel.slice(1))||null;}
+ closest(){return null;}
  remove(){this.isConnected=false;this.parentNode.children=this.parentNode.children.filter(x=>x!==this);}
  getBoundingClientRect(){return {left:30,right:230,top:40,bottom:85,width:200};}
  get scrollHeight(){return 150;}
