@@ -34,6 +34,7 @@ const context={
  hireTime:j=>new TestDate(2026,0,1).getTime(),
  renderRankings:()=>staticCalls++,renderCountryRank:()=>staticCalls++,displayTax:()=>staticCalls++,syncPaychecks:()=>staticCalls++,
  drawJobs:()=>{},
+ syncCustomSelects:()=>{},
  setMoney:(k,v)=>values.set(k,v),applyPrivacy:()=>{},updateText:(k,v)=>{if($(k).textContent!==v)$(k).textContent=v},updateHtml:(k,v)=>{if($(k).innerHTML!==v)$(k).innerHTML=v},escaped:x=>x,
  tr:(ko,en)=>context.lang==='en'?en:ko,
 };
