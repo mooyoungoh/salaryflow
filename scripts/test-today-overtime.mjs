@@ -12,9 +12,9 @@ for(const token of ['data-ot="enabled"','data-ot="hours"','data-ot="multiplier"'
 assert(html.includes('const otRate=overtimeRate(j);'),'Overtime rate should be computed once in the snapshot');
 assert(html.includes('scheduled:j.weekdays.includes(day.getDay())||!!otWindow'),'Days off with OT must be shown in shift countdown');
 assert(html.includes('overtimeAccrued(dayS,ts,j,item.otRate,item.otLiveWindows)'),'Current overtime must use cached rate');
-assert(html.includes('overtimeAccrued(weekS,dayS,j).money'),'Weekly earnings must include past OT');
-assert(html.includes('overtimeAccrued(monthS,dayS,j).money'),'Monthly earnings must include past OT');
-assert(html.includes('overtimeAccrued(yearS,dayS,j).money'),'Annual earnings must include past OT');
+assert(html.includes('overtimeAccrued(weekS,dayS,j,otRate,otAllWindows).money'),'Weekly earnings must include past OT');
+assert(html.includes('overtimeAccrued(monthS,dayS,j,otRate,otAllWindows).money'),'Monthly earnings must include past OT');
+assert(html.includes('overtimeAccrued(yearS,dayS,j,otRate,otAllWindows).money'),'Annual earnings must include past OT');
 assert(html.includes("if(earningsSnapshot&&earningsSnapshot.dayS!==dayS)drawJobs()"),'Tomorrow UI must reset');
 const job={id:'job1',gross:104000,weekdays:[1,2,3,4,5],hours:8,breakMode:'unpaid',breakMinutes:60,start:'09:00',overtimeRecords:{}};
 const ctx={config:{mode:'gross'},annualNet:()=>78000};
