@@ -7,7 +7,7 @@ assert(helpers.includes('function setWeeklyOvertime('));
 assert(helpers.includes('function overtimeWindows('));
 assert(html.includes('const otAllWindows=overtimeWindows(j,historyStart,dayS+48*3600)'),'Overtime windows should be compiled once per day/revision');
 assert(html.includes('const otLiveWindows=otAllWindows.filter('),'Live overtime windows should be derived from cached history');
-assert(html.includes('overtimeAccrued(weekS,dayS,j).money'),'Weekly totals should count recurring overtime');
+assert(html.includes('overtimeAccrued(weekS,dayS,j,otRate,otAllWindows).money'),'Weekly totals should count cached recurring overtime');
 const ctx={config:{mode:'gross'},annualNet:()=>78000};
 vm.createContext(ctx);
 vm.runInContext(helpers+';globalThis.api={overtimeDate,overtimeWindows,overtimeAccrued,overtimeForDate,setWeeklyOvertime,currentWeeklyOvertime,weeklyOvertimeRule,overtimeWindow};',ctx);
