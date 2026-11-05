@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 
 const html=readFileSync('index.html','utf8');
 const start=html.indexOf('function drawJobs(){');
-const end=html.indexOf(" $$('.job').forEach",start);
+const end=html.indexOf(" document.querySelectorAll('.job').forEach",start);
 assert(start>=0&&end>start,'Could not find Job renderer');
 const draw=html.slice(start,end);
 assert(draw.includes(".join('')}</div></div></div><section class=\"overtime-panel\""),'Close workday field and schedule grid before overtime panel');
