@@ -907,7 +907,7 @@ function drawJobs(){closeCustomSelect();const el=$('#jobs');el.innerHTML=config.
  box.querySelectorAll('[data-ot]').forEach(input=>{
   const apply=()=>{
    const key=overtimeDate(new Date());
-   const previous=j.overtimeRecords?.[key]||{enabled:false,hours:0,multiplier:1.5};
+   const previous=j.overtimeRecords?.[key]||todaysOvertime(j);
    const field=input.dataset.ot,record={...previous};
    if(field==='enabled')record.enabled=input.checked;
    if(field==='startTime'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(input.value))record.startTime=input.value;
