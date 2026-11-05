@@ -24,9 +24,18 @@ Production is maintained separately at https://salaryflow.github.io/. **Do not c
 - The `Propose updated SSA payroll tax cap` monthly workflow checks whether the **active IRS tax year has advanced**. Until then, the displayed payroll calculation retains 2026 values; it cannot adopt the 2027 limit prematurely. On a matching year, an official change within 15% can automatically create and squash-merge a staging PR with notification.
 - Arizona's manually configurable state deduction remains unchanged. Other state-tax models are not inferred or silently enabled.
 
+## Arizona 2026 wage-income estimate
+
+- Arizona's enacted HB 4168/SB 1861 (2026-2027 tax omnibus) sets a **2.5% flat income tax rate** and standard deductions of **$15,750** (single/MFS), **$23,625** (head of household), and **$31,500** (married filing jointly). Source: https://www.azleg.gov/legtext/57leg/2R/summary/S.4168-1861ATT_ASENACTED.DOCX.htm and https://azdor.gov/individuals/withholding-tax-individual.
+- The AZ reference is `data/arizona-2026.json`, also embedded in the static HTML as the immutable offline baseline. It is validated independently of federal tax, SSA payroll data and income statistics.
+- Prior installations that retained the old default $16,100 (copied from federal standard deduction) are migrated to the enacted AZ default. Any custom deduction amount remains untouched; switching filing status automatically updates the default only when not customized. Reset returns to the correct single-filer default.
+- This is a **simplified W-2 wage-only estimate**, not a complete state return: Arizona credits, qualified charitable contributions, additional subtractions and special tax situations remain excluded. No additional states with income taxes are modeled.
+- The app shows the federal, AZ and SSA payroll tax reference years separately, avoiding claims that old state or SSA reference figures are current.
+- `node scripts/test-arizona-tax.mjs` verifies official deductions, state-tax outcomes, zero-wage-income states and custom-value migration; `node scripts/test-inline-script.mjs` catches syntactically invalid inline JavaScript after changes.
+
 ## Browser reference-data recovery
 
-- The 2026 IRS, 2026 payroll tax, 2026 edition / 2025 income US, and 2024 WID datasets are embedded directly in `index.html` as a **permanent baseline**, independent of JSON and the manifest.
+- The 2026 IRS, 2026 Arizona state tax, 2026 payroll tax, 2026 edition / 2025 income US, and 2024 WID datasets are embedded directly in `index.html` as a **permanent baseline**, independent of JSON and the manifest.
 - On startup, each data type independently tries the active JSON (8-second timeout), validates its structure, and saves validated results to localStorage.
 - If a manifest or data file is unavailable, malformed or stale, the UI uses the last validated browser cache, otherwise its embedded fixed baseline. The salary counter remains operational; a small banner explains that reference statistics may be outdated.
 - This fallback is deliberately not live data; it protects availability, not tax estimates against law changes. The production organization is unchanged until reviewed deployment.
