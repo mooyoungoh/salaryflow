@@ -485,10 +485,10 @@ function overtimeRate(j){
  const base=config.mode==='gross'?num(j.gross):annualNet(j,false);
  return base/(52*(j.weekdays.length||5)*Math.max(.1,paidHours(j))*3600);
 }
-function overtimeAccrued(from,to,j){
+function overtimeAccrued(from,to,j,baseRate){
  if(to<=from||!j.overtimeRecords)return {money:0,seconds:0,activeRate:0};
  let money=0,seconds=0,activeRate=0;
- const perSecond=overtimeRate(j);
+ const perSecond=baseRate??overtimeRate(j);
  for(const [dateKey,record] of Object.entries(j.overtimeRecords)){
   const window=overtimeWindow(dateKey,j,record);
   if(!window||window.end<=from||window.start>=to)continue;
@@ -700,8 +700,9 @@ function render(){
   const jobs=config.jobs.map((j,i)=>{
    const sr=yearlyRate(j),todayTarget=j.weekdays.includes(day.getDay())?paidHours(j)*3600:0;
    const otWindow=overtimeWindow(overtimeDate(day),j,todaysOvertime(j,day));
-   const otTarget=otWindow?(otWindow.end-otWindow.start)*overtimeRate(j)*otWindow.multiplier:0;
-   return {job:j,rate:sr,target:todayTarget,otTarget,otWindow,
+   const otRate=overtimeRate(j);
+   const otTarget=otWindow?(otWindow.end-otWindow.start)*otRate*otWindow.multiplier:0;
+   return {job:j,rate:sr,otRate,target:todayTarget,otTarget,otWindow,
     weekBase:elapsedWork(weekS,dayS,j)*sr+overtimeAccrued(weekS,dayS,j).money,
     monthBase:elapsedWork(monthS,dayS,j)*sr+overtimeAccrued(monthS,dayS,j).money,
     yearBase:elapsedWork(yearS,dayS,j)*sr+overtimeAccrued(yearS,dayS,j).money,
@@ -731,12 +732,12 @@ function render(){
  for(const item of snapshot.jobs){
   const j=item.job,todayRaw=elapsedWork(dayS,ts,j),worked=Math.min(item.target,todayRaw);
   const active=elapsedWork(ts-1,ts,j)>0.001;
-  const overtime=overtimeAccrued(dayS,ts,j);
-  const overtimeCurrent=overtimeAccrued(Math.max(dayS,ts-1),ts,j);
+  const overtime=overtimeAccrued(dayS,ts,j,item.otRate);
+  const overtimeCurrent=overtimeAccrued(Math.max(dayS,ts-1),ts,j,item.otRate);
   const currentOtRate=overtimeCurrent.activeRate;
   earned+=worked*item.rate+overtime.money;
   periodEarned+=todayRaw*item.rate+overtime.money;
-  remaining+=Math.max(0,item.target-worked)*item.rate+Math.max(0,item.otTarget-(item.otWindow?overtimeAccrued(item.otWindow.start,ts,j).money:0));
+  remaining+=Math.max(0,item.target-worked)*item.rate+Math.max(0,item.otTarget-(item.otWindow?overtimeAccrued(item.otWindow.start,ts,j,item.otRate).money:0));
   paidSecs+=worked+overtime.seconds;
   jobWorkTimes.push({name:item.name,hours:(worked+overtime.seconds)/3600});
   jobEndTimes.push({...item,end:Math.max(item.end,item.otWindow?.end||item.end)});
