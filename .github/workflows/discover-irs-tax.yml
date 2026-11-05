@@ -1,4 +1,4 @@
-name: Find and propose new IRS tax tables
+name: Find and stage next IRS tax tables
 on:
   workflow_dispatch:
   schedule:
@@ -15,39 +15,40 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Test official IRS parser
+        run: node scripts/test-irs-parser.mjs
       - name: Discover next tax year's official IRS bulletin
         id: scan
         run: node scripts/discover-irs-tax.mjs
-      - name: Generate candidate data and review report
-        id: proposal
+      - name: Stage candidate without activating current tax year
         if: steps.scan.outputs.found == 'true'
         run: |
           YEAR=$(node -p "require('./data/manifest.json').tax.year+1")
-          node scripts/prepare-data-pr.mjs tax "$YEAR"
-      - name: Validate proposed dataset
-        if: steps.scan.outputs.found == 'true'
-        run: node scripts/validate-data.mjs
-      - name: Open review PR and preserve change history
+          mkdir -p data/candidates
+          cp "candidates/tax-$YEAR.json" "data/candidates/tax-$YEAR.json"
+          node scripts/validate-data.mjs
+      - name: Open IRS candidate PR
         if: steps.scan.outputs.found == 'true'
         id: pr
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Propose new IRS tax year from official bulletin"
-          branch: "data-review/irs-next-tax-year"
+          commit-message: 'data: stage next-year IRS tax candidate'
+          branch: data-review/irs-next-tax-year
           base: main
-          title: "[IRS tax review] New annual tax brackets and deductions"
-          body-path: data-review-report.md
-          draft: ${{ steps.proposal.outputs.auto_safe != 'true' }}
+          title: '[IRS tax candidate] Verified annual tax tables'
+          body: |
+            Official IRS tax bulletin parsed with full bracket and deduction checks.
+            Candidate file only: no changes to data/manifest.json or live tax year.
+            The atomic activation workflow will wait for matching SSA, Arizona,
+            and the start of the tax year before applying all three together.
+            Site: https://mooyoungoh.github.io/salaryflow/
           add-paths: |
-            data/*.json
-            data-review-report.md
-      - name: Auto-merge low-variance official IRS update on staging only
-        if: steps.proposal.outputs.auto_safe == 'true' && steps.pr.outputs.pull-request-url != ''
+            data/candidates/tax-*.json
+      - name: Merge candidate-only PR
+        if: steps.pr.outputs.pull-request-url != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ steps.pr.outputs.pull-request-url }}
         run: |
-          echo "Official IRS dataset passed all checks, with every reference value changing by at most 10%."
           gh pr merge "$PR_URL" --squash --delete-branch
-          gh pr comment "$PR_URL" --body "@mooyoungoh — Salary Flow staging data PR was automatically merged after passing the official IRS source and <=10% change checks. Review the merge history here: $PR_URL"
