@@ -242,8 +242,6 @@ function renderReferenceAudit(){
     time.textContent=tr('마지막 실행: ','Last run: ')+new Intl.DateTimeFormat(lang==='ko'?'ko-KR':'en-US',{dateStyle:'medium',timeStyle:'short'}).format(dt);
     item.append(time);
    }
-   const url='https://github.com/mooyoungoh/salaryflow/actions/runs/'+run.id;
-   if(Number.isSafeInteger(run.id)&&run.id>0){const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=tr('실행 기록','View run');item.append(link);}
   }
   grid.append(item);
  }
