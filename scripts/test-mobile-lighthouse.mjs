@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const html=readFileSync('index.html','utf8');
 const css=html.slice(html.indexOf('<style>')+7,html.indexOf('</style>'));
-assert(html.includes('<meta name="google-adsense-account"'),'Org-specific AdSense verification must remain');
+assert(!html.includes('<meta name="google-adsense-account"'),'Test site must not add org-specific AdSense verification');
 assert(/<meta name="description" content="[^"]{80,}/.test(html),'Search results need a meaningful meta description');
 assert(css.includes('.dashboard{min-height:505px}'),'Reserve mobile hero space during asynchronous initialization');
 assert(css.includes('.dashboard{min-height:565px}'),'Reserve extra vertical space for stacked narrow-screen mini cards');
