@@ -11,7 +11,7 @@ const apply=html.match(/function applyPrivacy\(\)\{[\s\S]*?\}\nfunction setMoney
 assert(apply,'Privacy update function missing');
 const privacyCode=apply[0].replace(/\nfunction setMoney\($/,'');
 assert(privacyCode.includes('button.dataset.concealed!==String(concealed)'),'Eye DOM should only replace SVG on state change');
-const clickStart=html.indexOf("$$('[data-hide]').forEach(");
+const clickStart=html.indexOf("document.querySelectorAll('[data-hide]').forEach(");
 const clickEnd=html.indexOf("$('#privacyAll').onclick",clickStart);
 assert(clickStart>=0&&clickEnd>clickStart,'Privacy click handler missing');
 const handler=html.slice(clickStart,clickEnd);
