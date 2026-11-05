@@ -30,7 +30,7 @@ def extract_official_base(page):
     parser.feed(page)
     text = parser.result()
     matches = re.findall(
-        r"For earnings in (20\\d{2}), this base is \\$([\\d,]+)", text,
+        r"For earnings in (20\d{2}), this base is \$([\d,]+)", text,
         flags=re.IGNORECASE)
     if len(matches) != 1:
         raise ValueError("Expected exactly one SSA contribution base statement")
