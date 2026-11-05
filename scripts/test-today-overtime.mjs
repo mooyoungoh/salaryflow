@@ -62,4 +62,25 @@ const weekend={...job,weekdays:[1,2,3,4,5],overtimeRecords:{[saturday]:{enabled:
 const weekendWindow=overtimeWindow(saturday,weekend,weekend.overtimeRecords[saturday]);
 assert.equal(weekendWindow.start,new Date(2026,10,7,9).getTime()/1000,'Days off start overtime at configured shift start');
 near(overtimeAccrued(weekendWindow.start,weekendWindow.end,weekend).money,overtimeRate(weekend)*2*3*3600,'Weekend overtime earns correct payout');
+// Explicit overtime starts must take priority over scheduled shift end, including 30-minute increments.
+const customRecord={enabled:true,startTime:'19:30',hours:2,multiplier:1.5};
+const explicit=overtimeWindow(date,job,customRecord);
+assert.equal(explicit.start,new Date(2026,10,4,19,30).getTime()/1000,'Start time is independently configurable');
+assert.equal(explicit.end,new Date(2026,10,4,21,30).getTime()/1000,'Duration is added from selected start');
+job.overtimeRecords[date]=customRecord;
+near(overtimeAccrued(new Date(2026,10,4,18).getTime()/1000,explicit.start,job).money,0,'No OT before user-selected start');
+near(overtimeAccrued(explicit.start,explicit.start+3600,job).money,75,'Explicit OT earns 1.5x after selected start');
+customRecord.startTime='bad-time';
+assert.equal(overtimeWindow(date,job,customRecord).start,period.start,'Invalid time falls back to former schedule rule');
+customRecord.startTime='19:30';
+// Older records without explicit times retain backward-compatible shift-end behavior.
+const legacyRecord={enabled:true,hours:2,multiplier:1.5};
+assert.equal(overtimeWindow(date,job,legacyRecord).start,period.start,'Legacy record uses scheduled shift end');
+assert.equal(todaysOvertime(job,new Date(2026,10,5)).enabled,false,'Different calendar day still defaults OFF');
+const overnightExplicit={...night,overtimeRecords:{[date]:{enabled:true,startTime:'02:30',hours:2,multiplier:2}}};
+assert.equal(overtimeWindow(date,overnightExplicit,overnightExplicit.overtimeRecords[date]).start,new Date(2026,10,5,2,30).getTime()/1000,'After-midnight start is next day for night shift');
+const nightEarly={...night,overtimeRecords:{[date]:{enabled:true,startTime:'22:30',hours:2,multiplier:2}}};
+assert.equal(overtimeWindow(date,nightEarly,nightEarly.overtimeRecords[date]).start,new Date(2026,10,4,22,30).getTime()/1000,'Before-midnight time stays on selected calendar day');
+const legacyDisabled={...job,overtimeRecords:{[date]:{enabled:false,hours:2,multiplier:2}}};
+assert.equal(todaysOvertime(legacyDisabled,start).hours,2,'Disabled same-day record retains hours to reuse');
 console.log('PASS: Today overtime, payout multipliers, midnight overlap, off-by-default, historical totals, net/gross rates');
