@@ -28,6 +28,8 @@ jobs:
         run: |
           node scripts/sync-reference-baseline.mjs --check
           node scripts/test-reference-baseline.mjs
+      - name: Test atomic browser reference recovery
+        run: node scripts/test-reference-fallback.mjs
       - name: Verify reference status panel
         run: node scripts/test-reference-status.mjs
       - name: Verify job default collapse
