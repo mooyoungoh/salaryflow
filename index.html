@@ -506,9 +506,13 @@ function cachedTodayWorkClock(day,j){
  const yesterday=new Date(day);yesterday.setDate(yesterday.getDate()-1);
  const clocks=[cachedDayWorkClock(yesterday,j),cachedDayWorkClock(day,j)];
  const bases=clocks.map(f=>f(dayStart));
- const elapsed=(from,to)=>to<=from?0:clocks.reduce((sum,f,i)=>sum+Math.max(0,f(to)-f(from)),0);
+ // Immediately after midnight, the old 1-second activity check also includes a
+ // shift started two calendar days ago (possible with a 24h shift + 4h break).
+ const priorDay=new Date(yesterday);priorDay.setDate(priorDay.getDate()-1);
+ const priorClock=cachedDayWorkClock(priorDay,j);
+ const elapsed=(from,to)=>to<=from?0:clocks.reduce((sum,f)=>sum+Math.max(0,f(to)-f(from)),0);
  const today=ts=>clocks.reduce((sum,f,i)=>sum+Math.max(0,f(ts)-bases[i]),0);
- return {today,active:ts=>elapsed(ts-1,ts)};
+ return {today,active:ts=>elapsed(ts-1,ts)+(ts-1<dayStart?Math.max(0,priorClock(ts)-priorClock(ts-1)):0)};
 }
 
 const overtimeDate=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
