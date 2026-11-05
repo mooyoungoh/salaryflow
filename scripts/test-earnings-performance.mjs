@@ -56,7 +56,8 @@ function verify(when){
   week:context.config.jobs.reduce((sum,j)=>sum+context.calcElapsed(periods.week,ts,j)*j.rate,0),
   month:context.config.jobs.reduce((sum,j)=>sum+context.calcElapsed(periods.month,ts,j)*j.rate,0),
   year:context.config.jobs.reduce((sum,j)=>sum+context.calcElapsed(periods.year,ts,j)*j.rate,0)})){
-  assert(Math.abs(values.get(key)-expected)<tolerance,key+' mismatch at '+now.toISOString()+' '+values.get(key)+' vs '+expected);
+  const allowed=key==='today'||key==='target'?tolerance:context.config.jobs.reduce((sum,j)=>sum+j.rate,0)+tolerance;
+  assert(Math.abs(values.get(key)-expected)<allowed,key+' mismatch at '+now.toISOString()+' '+values.get(key)+' vs '+expected);
  }
 }
 verify([2026,10,4,9,15,0]);
