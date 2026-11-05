@@ -650,10 +650,10 @@ $('#langEn').onclick=()=>{lang='en';try{localStorage.setItem(LANG_KEY,lang)}catc
 const eyeOn='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 const eyeOff='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.5 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a14.3 14.3 0 0 1-4.3 5.5"/><path d="M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7c1.1 0 2.2-.2 3.2-.6"/><path d="M10 10a3 3 0 0 0 4 4"/></svg>';
 const todayISO=()=>{let d=new Date();d.setFullYear(d.getFullYear()-3);return d.toLocaleDateString('en-CA').match(/^\d{4}-\d{2}-\d{2}$/)?.[0]||`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
-let seq=1;const newJob=(n=1)=>({id:'job'+Date.now()+Math.random().toString(36).slice(2,7),name:'Job '+n,gross:90000,aipPercent:0,extraBonus:0,pretax401:0,netOverride:null,frequency:'biweekly',start:'09:00',hours:8,breakMinutes:60,breakMode:'unpaid',breakStart:'12:00',weekdays:[1,2,3,4,5],hireDate:todayISO(),raise:0,overtimeRecords:{}});
+let seq=1;const newJob=(n=1)=>({id:'job'+Date.now()+Math.random().toString(36).slice(2,7),name:'Job '+n,gross:90000,aipPercent:0,extraBonus:0,pretax401:0,netOverride:null,frequency:'biweekly',start:'09:00',hours:8,breakMinutes:60,breakMode:'unpaid',breakStart:'12:00',weekdays:[1,2,3,4,5],hireDate:todayISO(),raise:0,overtimeRecords:{},overtimeWeeklyRules:[]});
 const ARIZONA_RULES=REFERENCE_DATA.arizona;
 const standardArizonaDeduction=filing=>ARIZONA_RULES.standardDeduction[filing]??ARIZONA_RULES.standardDeduction.single;
-let config={countryCompare:'KR',currency:'USD',rankCompareState:'CA',taxState:'AZ',includeBonusDaily:false,mode:'gross',netMethod:'auto',filing:'single',outside:0,hsa:0,extraDeduction:0,azDeduction:standardArizonaDeduction('single'),azDeductionCustomized:false,jobs:[newJob()]};try{const old=JSON.parse(localStorage.getItem(KEY)||'null');if(old&&Array.isArray(old.jobs)&&old.jobs.length){config={...config,...old,netMethod:'auto',jobs:old.jobs.slice(0,8).map((j,i)=>({...newJob(i+1),...j,netOverride:Number.isFinite(j.netOverride)&&j.netOverride>=0?j.netOverride:null,overtimeRecords:j.overtimeRecords&&typeof j.overtimeRecords==='object'&&!Array.isArray(j.overtimeRecords)?j.overtimeRecords:{}}))};if(old.azDeductionCustomized===undefined){config.azDeductionCustomized=Number.isFinite(old.azDeduction)&&old.azDeduction!==16100&&old.azDeduction!==standardArizonaDeduction(old.filing||'single');}if(!config.azDeductionCustomized)config.azDeduction=standardArizonaDeduction(config.filing);}}catch(e){}
+let config={countryCompare:'KR',currency:'USD',rankCompareState:'CA',taxState:'AZ',includeBonusDaily:false,mode:'gross',netMethod:'auto',filing:'single',outside:0,hsa:0,extraDeduction:0,azDeduction:standardArizonaDeduction('single'),azDeductionCustomized:false,jobs:[newJob()]};try{const old=JSON.parse(localStorage.getItem(KEY)||'null');if(old&&Array.isArray(old.jobs)&&old.jobs.length){config={...config,...old,netMethod:'auto',jobs:old.jobs.slice(0,8).map((j,i)=>({...newJob(i+1),...j,netOverride:Number.isFinite(j.netOverride)&&j.netOverride>=0?j.netOverride:null,overtimeRecords:j.overtimeRecords&&typeof j.overtimeRecords==='object'&&!Array.isArray(j.overtimeRecords)?j.overtimeRecords:{},overtimeWeeklyRules:Array.isArray(j.overtimeWeeklyRules)?j.overtimeWeeklyRules.slice(-300):[]}))};if(old.azDeductionCustomized===undefined){config.azDeductionCustomized=Number.isFinite(old.azDeduction)&&old.azDeduction!==16100&&old.azDeduction!==standardArizonaDeduction(old.filing||'single');}if(!config.azDeductionCustomized)config.azDeduction=standardArizonaDeduction(config.filing);}}catch(e){}
 let hidden=new Set(),inputHidden=new Set(),earningsRevision=0;
 let pendingSave=null;
 function flushSave(){
@@ -752,11 +752,74 @@ function overtimeRate(j){
  const base=config.mode==='gross'?num(j.gross):annualNet(j,false);
  return base/(52*(j.weekdays.length||5)*Math.max(.1,paidHours(j))*3600);
 }
+
+function weeklyOvertimeRule(j,date){
+ const key=overtimeDate(date);
+ const rules=Array.isArray(j.overtimeWeeklyRules)?j.overtimeWeeklyRules:[];
+ // The latest rule on or before the requested date wins; old settings are never
+ // retroactively overwritten by edits made today.
+ let rule=null;
+ for(const r of rules){
+  if(r&&typeof r.effectiveFrom==='string'&&r.effectiveFrom<=key&&(!rule||r.effectiveFrom>=rule.effectiveFrom))rule=r;
+ }
+ return rule;
+}
+function overtimeForDate(j,date){
+ const key=overtimeDate(date);
+ // A manually entered date overrides the recurring schedule, even if disabled.
+ if(Object.prototype.hasOwnProperty.call(j.overtimeRecords||{},key))return j.overtimeRecords[key];
+ const rule=weeklyOvertimeRule(j,date);
+ if(!rule||!rule.enabled||!Array.isArray(rule.weekdays)||!rule.weekdays.includes(date.getDay()))return {enabled:false,hours:0,multiplier:1.5};
+ return {enabled:true,startTime:rule.startTime,hours:rule.hours,multiplier:rule.multiplier};
+}
+function overtimeWindows(j,from,to){
+ if(to<=from)return [];
+ const entries=[];
+ const manual=j.overtimeRecords||{};
+ for(const [key,value] of Object.entries(manual)){
+  const window=overtimeWindow(key,j,value);
+  if(window&&window.end>from&&window.start<to)entries.push(window);
+ }
+ const rules=j.overtimeWeeklyRules;
+ if(!Array.isArray(rules)||!rules.length)return entries;
+ let earliest=null;
+ for(const rule of rules){
+  if(rule&&/^\d{4}-\d{2}-\d{2}$/.test(rule.effectiveFrom||'')&&(earliest===null||rule.effectiveFrom<earliest))earliest=rule.effectiveFrom;
+ }
+ if(!earliest)return entries;
+ const [y,m,d]=earliest.split('-').map(Number);
+ const first=new Date(y,m-1,d);
+ if(first.getFullYear()!==y||first.getMonth()!==m-1||first.getDate()!==d)return entries;
+ const start=new Date(Math.max(first.getTime(),startDay(new Date(from*1000)).getTime()-2*86400000));
+ const end=startDay(new Date(to*1000));
+ let date=startDay(start);
+ // Generate only necessary days, not every 200ms. The live ticker passes cached windows.
+ for(let limit=0;date<=end&&limit<36525;limit++,date.setDate(date.getDate()+1)){
+  const key=overtimeDate(date);
+  if(Object.prototype.hasOwnProperty.call(manual,key))continue;
+  const record=overtimeForDate(j,date);
+  const window=overtimeWindow(key,j,record);
+  if(window&&window.end>from&&window.start<to)entries.push(window);
+ }
+ return entries;
+}
+function currentWeeklyOvertime(j,now=new Date()){
+ const rule=weeklyOvertimeRule(j,now);
+ return rule?{enabled:!!rule.enabled,weekdays:Array.isArray(rule.weekdays)?rule.weekdays:[],startTime:rule.startTime||overtimeDefaultStart(j,now),hours:Math.max(0,Number(rule.hours)||0),multiplier:overtimeMultiplier(rule)}
+  :{enabled:false,weekdays:[1,2,3,4,5],startTime:overtimeDefaultStart(j,now),hours:0,multiplier:1.5};
+}
+function setWeeklyOvertime(j,changes,now=new Date()){
+ const key=overtimeDate(now),current={...currentWeeklyOvertime(j,now),...changes};
+ j.overtimeWeeklyRules??=[];
+ // Only replace edits effective today; earlier rules must remain unchanged.
+ j.overtimeWeeklyRules=j.overtimeWeeklyRules.filter(r=>r&&r.effectiveFrom!==key);
+ j.overtimeWeeklyRules.push({effectiveFrom:key,enabled:!!current.enabled,weekdays:[...new Set(current.weekdays.filter(n=>Number.isInteger(n)&&n>=0&&n<=6))],startTime:current.startTime,hours:Math.max(0,Math.min(12,Number(current.hours)||0)),multiplier:overtimeMultiplier(current)});
+}
 function overtimeAccrued(from,to,j,baseRate,preparedWindows){
- if(to<=from||!j.overtimeRecords)return {money:0,seconds:0,activeRate:0};
+ if(to<=from)return {money:0,seconds:0,activeRate:0};
  let money=0,seconds=0,activeRate=0;
  const perSecond=baseRate??overtimeRate(j);
- const windows=preparedWindows??Object.entries(j.overtimeRecords).map(([key,value])=>overtimeWindow(key,j,value));
+ const windows=preparedWindows??overtimeWindows(j,from,to);
  for(const window of windows){
   if(!window||window.end<=from||window.start>=to)continue;
   const overlap=Math.max(0,Math.min(to,window.end)-Math.max(from,window.start));
@@ -771,10 +834,7 @@ function overtimeDefaultStart(j,now=new Date()){
  const result=new Date(start*1000);
  return String(result.getHours()).padStart(2,'0')+':'+String(result.getMinutes()).padStart(2,'0');
 }
-function todaysOvertime(j,now=new Date()){
- const record=j.overtimeRecords?.[overtimeDate(now)];
- return record&&typeof record==='object'?record:{enabled:false,hours:0,multiplier:1.5};
-}
+function todaysOvertime(j,now=new Date()){return overtimeForDate(j,now)}
 const TAX_STATES={AZ:'Arizona',AK:'Alaska',FL:'Florida',NV:'Nevada',NH:'New Hampshire',SD:'South Dakota',TN:'Tennessee',TX:'Texas',WA:'Washington',WY:'Wyoming'};
 const ZERO_WAGE_STATES=new Set(['AK','FL','NV','NH','SD','TN','TX','WA','WY']);
 const TAX2026=REFERENCE_DATA.tax;
@@ -1007,7 +1067,7 @@ function render(){
    const otWindow=overtimeWindow(overtimeDate(day),j,todaysOvertime(j,day));
    const otRate=overtimeRate(j);
    // Build today's intersecting overtime windows once, not every 200ms.
-   const otLiveWindows=Object.entries(j.overtimeRecords||{}).map(([key,value])=>overtimeWindow(key,j,value)).filter(w=>w&&w.end>dayS&&w.start<dayS+48*3600);
+   const otLiveWindows=overtimeWindows(j,dayS,dayS+48*3600);
    const otTarget=otWindow?(otWindow.end-otWindow.start)*otRate*otWindow.multiplier:0;
    return {job:j,rate:sr,clock:cachedTodayWorkClock(day,j),otRate,otLiveWindows,target:todayTarget,otTarget,otWindow,
     weekBase:elapsedWork(weekS,dayS,j)*sr+overtimeAccrued(weekS,dayS,j).money,
