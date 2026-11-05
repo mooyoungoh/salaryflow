@@ -551,7 +551,7 @@ function drawJobs(){const el=$('#jobs');el.innerHTML=config.jobs.map((j,i)=>`<ar
    const field=input.dataset.ot,record={...previous};
    if(field==='enabled')record.enabled=input.value==='on';
    if(field==='hours')record.hours=Math.max(0,Math.min(12,Number(input.value)||0));
-   if(field==='multiplier'&&input.value!=='custom')record.multiplier=Number(input.value);
+   if(field==='multiplier')record.multiplier=input.value==='custom'?2.5:Number(input.value);
    if(field==='custom')record.multiplier=Math.max(0,Math.min(10,Number(input.value)||0));
    j.overtimeRecords??={};
    j.overtimeRecords[key]=record;
@@ -693,22 +693,25 @@ let earningsSnapshot=null,lastStatusSecond=-1,lastStaticKey='';
 function render(){
  const now=new Date(),ts=now.getTime()/1000,day=startDay(now),dayS=day.getTime()/1000;
  let rebuilt=false;
+ if(earningsSnapshot&&earningsSnapshot.dayS!==dayS)drawJobs(); // Today's overtime controls reset on local date rollover.
  if(!earningsSnapshot||earningsSnapshot.dayS!==dayS||earningsSnapshot.revision!==earningsRevision){
   const dow=(now.getDay()+6)%7,monday=new Date(day);monday.setDate(monday.getDate()-dow);
   const weekS=monday.getTime()/1000,monthS=new Date(now.getFullYear(),now.getMonth(),1).getTime()/1000,yearS=new Date(now.getFullYear(),0,1).getTime()/1000;
   const jobs=config.jobs.map((j,i)=>{
    const sr=yearlyRate(j),todayTarget=j.weekdays.includes(day.getDay())?paidHours(j)*3600:0;
-   return {job:j,rate:sr,target:todayTarget,
-    weekBase:elapsedWork(weekS,dayS,j)*sr,
-    monthBase:elapsedWork(monthS,dayS,j)*sr,
-    yearBase:elapsedWork(yearS,dayS,j)*sr,
-    lifetimeBase:career(j,day),
+   const otWindow=overtimeWindow(overtimeDate(day),j,todaysOvertime(j,day));
+   const otTarget=otWindow?(otWindow.end-otWindow.start)*overtimeRate(j)*otWindow.multiplier:0;
+   return {job:j,rate:sr,target:todayTarget,otTarget,otWindow,
+    weekBase:elapsedWork(weekS,dayS,j)*sr+overtimeAccrued(weekS,dayS,j).money,
+    monthBase:elapsedWork(monthS,dayS,j)*sr+overtimeAccrued(monthS,dayS,j).money,
+    yearBase:elapsedWork(yearS,dayS,j)*sr+overtimeAccrued(yearS,dayS,j).money,
+    lifetimeBase:career(j,day)+overtimeAccrued(Math.min(dayS,hireTime(j)/1000),dayS,j).money,
     name:j.name||'Job '+(i+1),
     scheduled:j.weekdays.includes(day.getDay()),
     start:dayS+secClock(j.start),end:shiftEndTime(day,j)};
   });
   earningsSnapshot={revision:earningsRevision,dayS,jobs,
-   target:jobs.reduce((v,j)=>v+j.target*j.rate,0),
+   target:jobs.reduce((v,j)=>v+j.target*j.rate+j.otTarget,0),
    allSecs:jobs.reduce((v,j)=>v+j.target,0),
    weekBase:jobs.reduce((v,j)=>v+j.weekBase,0),
    monthBase:jobs.reduce((v,j)=>v+j.monthBase,0),
@@ -728,13 +731,17 @@ function render(){
  for(const item of snapshot.jobs){
   const j=item.job,todayRaw=elapsedWork(dayS,ts,j),worked=Math.min(item.target,todayRaw);
   const active=elapsedWork(ts-1,ts,j)>0.001;
-  earned+=worked*item.rate;
-  periodEarned+=todayRaw*item.rate;
-  remaining+=Math.max(0,item.target-worked)*item.rate;
-  paidSecs+=worked;
-  jobWorkTimes.push({name:item.name,hours:worked/3600});
-  jobEndTimes.push(item);
+  const overtime=overtimeAccrued(dayS,ts,j);
+  const overtimeCurrent=overtimeAccrued(Math.max(dayS,ts-1),ts,j);
+  const currentOtRate=overtimeCurrent.activeRate;
+  earned+=worked*item.rate+overtime.money;
+  periodEarned+=todayRaw*item.rate+overtime.money;
+  remaining+=Math.max(0,item.target-worked)*item.rate+Math.max(0,item.otTarget-(item.otWindow?overtimeAccrued(item.otWindow.start,ts,j).money:0));
+  paidSecs+=worked+overtime.seconds;
+  jobWorkTimes.push({name:item.name,hours:(worked+overtime.seconds)/3600});
+  jobEndTimes.push({...item,end:Math.max(item.end,item.otWindow?.end||item.end)});
   if(active){rate+=item.rate;working=true}
+  if(currentOtRate>0){rate+=currentOtRate;working=true}
  }
  // Live counters interpolate from midnight baseline; no annual loops on each tick.
  setMoney('today',earned,2);
