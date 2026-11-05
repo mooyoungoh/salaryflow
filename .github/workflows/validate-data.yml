@@ -30,6 +30,8 @@ jobs:
           node scripts/test-reference-baseline.mjs
       - name: Verify reference status panel
         run: node scripts/test-reference-status.mjs
+      - name: Verify job default collapse
+        run: node scripts/test-job-default-collapse.mjs
       - name: Verify dynamic reference years
         run: node scripts/test-dynamic-reference-years.mjs
       - name: Verify GitHub audit run panel
