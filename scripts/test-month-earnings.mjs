@@ -6,8 +6,9 @@ const checks=[
  ['Monthly privacy button', 'data-hide="month"'],
  ['Month-to-date localization', '"이번 달 수입": "Earned this month"'],
  ['Month begins at local midnight on first day', 'new Date(now.getFullYear(),now.getMonth(),1).getTime()/1000'],
- ['Month earnings accumulate from first day only', 'month+=elapsedWork(monthS,ts,j)*sr'],
- ['Month display uses shared currency formatting', "setMoney('month',month,0)"],
+ ['Monthly earnings cache precomputes up to midnight', 'monthBase:elapsedWork(monthS,dayS,j)*sr'],
+ ['Monthly total includes current calendar day', 'snapshot.monthBase+periodEarned'],
+ ['Month display uses shared currency formatting', "setMoney('month',snapshot.monthBase+periodEarned,0)"],
  ['Month participates in hide all', "'lifetime','week','month','year','day'"],
  ['Week remains Monday start', 'monday.setDate(monday.getDate()-dow)'],
  ['Year remains January 1 start', 'new Date(now.getFullYear(),0,1).getTime()/1000']
