@@ -5,6 +5,6 @@ assert(html.includes('const collapsedJobs=new Set(config.jobs.map(job=>job.id));
 assert(html.includes('collapsedJobs.add(job.id);save();drawJobs();render()'),'New jobs should start collapsed');
 assert(html.includes('collapsedJobs.clear();config.jobs.forEach(job=>collapsedJobs.add(job.id));'),'Reset should start collapsed');
 assert(html.includes("collapsedJobs.has(j.id)?'is-collapsed':''"),'Collapse CSS class must follow the state');
-assert(html.includes("aria-expanded=\\"\u0024{!collapsedJobs.has(j.id)}\\"") || html.includes('aria-expanded="${!collapsedJobs.has(j.id)}"'),'Accessible expanded state must follow collapsed jobs');
+assert(html.includes('aria-expanded="${!collapsedJobs.has(j.id)}"'),'Accessible expanded state must follow collapsed jobs');
 assert(html.includes("if(closed)collapsedJobs.add(j.id);else collapsedJobs.delete(j.id)"),'User toggles must still work');
 console.log('PASS: initial, new, and reset jobs collapsed; toggle intact');
