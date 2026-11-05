@@ -726,9 +726,34 @@ function renderRankings(){
 }
 
 const moneyKeys=['today','target','remaining','rate','lifetime','week','month','year','day'];
-function applyPrivacy(){moneyKeys.forEach(k=>{const el=$(`[data-money="${k}"]`),button=$(`[data-hide="${k}"]`);if(!el||!button)return;const displayValue=hidden.has(k)?'••••••':el.dataset.raw||'$0.00';if(el.textContent!==displayValue)el.textContent=displayValue;el.classList.toggle('masked',hidden.has(k));const concealed=hidden.has(k);if(button.dataset.concealed!==String(concealed)){button.innerHTML=concealed?eyeOff:eyeOn;button.dataset.concealed=String(concealed)}const title=concealed?tr('금액 표시','Show amount'):tr('금액 숨기기','Hide amount');if(button.title!==title){button.title=title;button.setAttribute('aria-label',title)}button.setAttribute('aria-pressed',String(concealed))});const all=moneyKeys.every(k=>hidden.has(k));$('#privacyAll').textContent=all?tr('전체 표시','Show all'):tr('전체 숨기기','Hide all')}
-function setMoney(key,v,d=2,suffix=''){const el=$(`[data-money="${key}"]`);el.dataset.raw=money(v,d)+suffix}
-function syncPaychecks(){for(const box of $$('.job')){const j=config.jobs.find(x=>x.id===box.dataset.id);if(!j)continue;const input=box.querySelector('[data-prop="netOverride"]');if(input&&document.activeElement!==input)input.value=paycheck(j).toFixed(2);const label=box.querySelector('.paycheck-source');if(label)label.textContent=j.netOverride===null?tr('자동 계산 · Arizona 세금 추정','Auto-calculated · Arizona tax estimate'):tr('직접 수정한 금액','Manually adjusted');const btn=box.querySelector('.auto-net');if(btn){btn.disabled=j.netOverride===null;btn.textContent=tr('자동 계산으로 복원','Reset to auto');}const note=box.querySelector('.net-value');if(note)note.textContent=money(annualNet(j));const bonus=box.querySelector('.bonus-value');if(bonus)bonus.textContent=money(annualBonus(j));const comp=box.querySelector('.comp-value');if(comp)comp.textContent=money(totalComp(j));}}
+const MONEY_ELEMENTS={};
+function moneyElement(key){return MONEY_ELEMENTS[key]||(MONEY_ELEMENTS[key]=$(`[data-money="${key}"]`));}
+function updateText(selector,value){const el=$(selector);if(el&&el.textContent!==value)el.textContent=value;}
+function updateHtml(selector,value){const el=$(selector);if(el&&el.innerHTML!==value)el.innerHTML=value;}
+function applyPrivacy(){
+ moneyKeys.forEach(k=>{
+  const el=moneyElement(k),button=$(`[data-hide="${k}"]`);
+  if(!el||!button)return;
+  const concealed=hidden.has(k),displayValue=concealed?'••••••':el.dataset.raw||'$0.00';
+  if(el.textContent!==displayValue)el.textContent=displayValue;
+  if(el.classList.contains('masked')!==concealed)el.classList.toggle('masked',concealed);
+  if(button.dataset.concealed!==String(concealed)){
+   button.innerHTML=concealed?eyeOff:eyeOn;button.dataset.concealed=String(concealed);
+  }
+  const title=concealed?tr('금액 표시','Show amount'):tr('금액 숨기기','Hide amount');
+  if(button.title!==title){button.title=title;button.setAttribute('aria-label',title);}
+  if(button.getAttribute('aria-pressed')!==String(concealed))button.setAttribute('aria-pressed',String(concealed));
+ });
+ const all=moneyKeys.every(k=>hidden.has(k));
+ updateText('#privacyAll',all?tr('전체 표시','Show all'):tr('전체 숨기기','Hide all'));
+}
+function setMoney(key,v,d=2,suffix=''){
+ const el=moneyElement(key);if(!el)return;
+ const raw=money(v,d)+suffix;
+ if(el.dataset.raw!==raw)el.dataset.raw=raw;
+ if(!hidden.has(key)&&el.textContent!==raw)el.textContent=raw;
+}
+function syncPaychecks(){for(const box of $$('.job')){const j=config.jobs.find(x=>x.id===box.dataset.id);if(!j)continue;const input=box.querySelector('[data-prop="netOverride"]');if(input&&document.activeElement!==input){const v=paycheck(j).toFixed(2);if(input.value!==v)input.value=v;}const label=box.querySelector('.paycheck-source');if(label){const v=j.netOverride===null?tr('자동 계산 · Arizona 세금 추정','Auto-calculated · Arizona tax estimate'):tr('직접 수정한 금액','Manually adjusted');if(label.textContent!==v)label.textContent=v;}const btn=box.querySelector('.auto-net');if(btn){btn.disabled=j.netOverride===null;const v=tr('자동 계산으로 복원','Reset to auto');if(btn.textContent!==v)btn.textContent=v;}const note=box.querySelector('.net-value');if(note){const v=money(annualNet(j));if(note.textContent!==v)note.textContent=v;}const bonus=box.querySelector('.bonus-value');if(bonus){const v=money(annualBonus(j));if(bonus.textContent!==v)bonus.textContent=v;}const comp=box.querySelector('.comp-value');if(comp){const v=money(totalComp(j));if(comp.textContent!==v)comp.textContent=v;}}}
 // Cache calendar-period baselines and each job's earning rate until a setting/day changes.
 // Only today's elapsed working seconds change on the 200ms ticker.
 let earningsSnapshot=null,lastStatusSecond=-1,lastStaticKey='';
@@ -746,7 +771,7 @@ function render(){
    // Build today's intersecting overtime windows once, not every 200ms.
    const otLiveWindows=Object.entries(j.overtimeRecords||{}).map(([key,value])=>overtimeWindow(key,j,value)).filter(w=>w&&w.end>dayS&&w.start<dayS+48*3600);
    const otTarget=otWindow?(otWindow.end-otWindow.start)*otRate*otWindow.multiplier:0;
-   return {job:j,rate:sr,otRate,otLiveWindows,target:todayTarget,otTarget,otWindow,
+   return {job:j,rate:sr,clock:cachedTodayWorkClock(day,j),otRate,otLiveWindows,target:todayTarget,otTarget,otWindow,
     weekBase:elapsedWork(weekS,dayS,j)*sr+overtimeAccrued(weekS,dayS,j).money,
     monthBase:elapsedWork(monthS,dayS,j)*sr+overtimeAccrued(monthS,dayS,j).money,
     yearBase:elapsedWork(yearS,dayS,j)*sr+overtimeAccrued(yearS,dayS,j).money,
@@ -774,8 +799,8 @@ function render(){
  let earned=0,periodEarned=0,remaining=0,rate=0,paidSecs=0,working=false;
  const jobWorkTimes=[],jobEndTimes=[];
  for(const item of snapshot.jobs){
-  const j=item.job,todayRaw=elapsedWork(dayS,ts,j),worked=Math.min(item.target,todayRaw);
-  const active=elapsedWork(ts-1,ts,j)>0.001;
+  const j=item.job,todayRaw=item.clock.today(ts),worked=Math.min(item.target,todayRaw);
+  const active=item.clock.active(ts)>0.001;
   const overtime=overtimeAccrued(dayS,ts,j,item.otRate,item.otLiveWindows);
   const overtimeCurrent=overtimeAccrued(Math.max(dayS,ts-1),ts,j,item.otRate,item.otLiveWindows);
   const currentOtRate=overtimeCurrent.activeRate;
@@ -800,21 +825,21 @@ function render(){
   setMoney('month',snapshot.monthBase+periodEarned,0);
   setMoney('year',snapshot.yearBase+periodEarned,0);
   setMoney('day',snapshot.target,0);
-  $('#worked').innerHTML=jobWorkTimes.map(x=>'<span class="worked-item"><span class="worked-name" title="'+escaped(x.name)+'">'+escaped(x.name)+'</span><span>'+x.hours.toFixed(2)+tr('시간','h')+'</span></span>').join('<span class="worked-separator" aria-hidden="true">|</span>')+(jobWorkTimes.length?'<span class="worked-separator" aria-hidden="true">|</span>':'')+'<span class="worked-item worked-total">'+tr('오늘 누적 근무','Total worked today')+' '+(paidSecs/3600).toFixed(2)+tr('시간','h')+'</span>';
+  updateHtml('#worked',jobWorkTimes.map(x=>'<span class="worked-item"><span class="worked-name" title="'+escaped(x.name)+'">'+escaped(x.name)+'</span><span>'+x.hours.toFixed(2)+tr('시간','h')+'</span></span>').join('<span class="worked-separator" aria-hidden="true">|</span>')+(jobWorkTimes.length?'<span class="worked-separator" aria-hidden="true">|</span>':'')+'<span class="worked-item worked-total">'+tr('오늘 누적 근무','Total worked today')+' '+(paidSecs/3600).toFixed(2)+tr('시간','h')+'</span>';
   const scheduledEnd=jobEndTimes.filter(x=>x.scheduled);
   const latestEnd=scheduledEnd.length?Math.max(...scheduledEnd.map(x=>x.end)):0;
   const countdownItem=x=>'<span class="end-job"><span class="end-name" title="'+escaped(x.name)+'">'+escaped(x.name)+'</span> '+(x.scheduled?(ts>=x.end?tr('퇴근 완료','Shift ended'):durationCountdown(x.end-ts)):tr('휴무','Day off'))+'</span>';
-  $('#endCountdown').innerHTML=jobEndTimes.map(countdownItem).join('<span class="end-separator" aria-hidden="true">|</span>')+(jobEndTimes.length?'<span class="end-separator" aria-hidden="true">|</span>':'')+'<span class="end-total">'+tr('모든 업무 종료까지','Until all shifts end')+' '+(latestEnd?ts>=latestEnd?tr('퇴근 완료','All shifts ended'):durationCountdown(latestEnd-ts):tr('휴무','Day off'))+'</span>';
-  $('#percent').textContent=snapshot.target>0?(100*earned/snapshot.target).toFixed(1)+'%':tr('휴무일','Day off');
-  $('#workStatus').textContent=working?tr('LIVE · 지금 수입 누적 중','LIVE · Earnings accumulating'):tr('OFF DUTY · 근무 시간 외','OFF DUTY · Outside work hours');
-  $('#clock').textContent=now.toLocaleTimeString(lang==='ko'?'ko-KR':'en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  $('#todayDescription').textContent=config.mode==='gross'?tr('오늘 근무로 발생한 추정 세전 수입','Estimated gross earnings from today’s work'):tr(REFERENCE_DATA.years.tax+' Arizona 세후 추정 / 직접 수정된 실수령액',REFERENCE_DATA.years.tax+' Arizona net estimate / adjusted take-home pay');
-  $('#careerExplain').textContent=config.mode==='gross'?tr('과거 연도는 연봉·인상률 추정, 올해는 실제 근무 스케줄에 맞춰 누적','Past years estimated from salary and raises; current year follows work schedules'):tr('과거 소득은 추정, 올해는 현재 세후 시급과 근무 일정으로 누적 · 과거 세법 미반영','Historical income estimated; this year accumulates using current net hourly rate and work schedules');
+  updateHtml('#endCountdown',jobEndTimes.map(countdownItem).join('<span class="end-separator" aria-hidden="true">|</span>')+(jobEndTimes.length?'<span class="end-separator" aria-hidden="true">|</span>':'')+'<span class="end-total">'+tr('모든 업무 종료까지','Until all shifts end')+' '+(latestEnd?ts>=latestEnd?tr('퇴근 완료','All shifts ended'):durationCountdown(latestEnd-ts):tr('휴무','Day off'))+'</span>');
+  updateText('#percent',snapshot.target>0?(100*earned/snapshot.target).toFixed(1)+'%':tr('휴무일','Day off'));
+  updateText('#workStatus',working?tr('LIVE · 지금 수입 누적 중','LIVE · Earnings accumulating'):tr('OFF DUTY · 근무 시간 외','OFF DUTY · Outside work hours'));
+  updateText('#clock',now.toLocaleTimeString(lang==='ko'?'ko-KR':'en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  updateText('#todayDescription',config.mode==='gross'?tr('오늘 근무로 발생한 추정 세전 수입','Estimated gross earnings from today’s work'):tr(REFERENCE_DATA.years.tax+' Arizona 세후 추정 / 직접 수정된 실수령액',REFERENCE_DATA.years.tax+' Arizona net estimate / adjusted take-home pay'));
+  updateText('#careerExplain',config.mode==='gross'?tr('과거 연도는 연봉·인상률 추정, 올해는 실제 근무 스케줄에 맞춰 누적','Past years estimated from salary and raises); current year follows work schedules'):tr('과거 소득은 추정, 올해는 현재 세후 시급과 근무 일정으로 누적 · 과거 세법 미반영','Historical income estimated; this year accumulates using current net hourly rate and work schedules');
   lastStatusSecond=second;
  }
  $('#progress').style.width=(snapshot.target>0?Math.min(100,Math.max(0,100*earned/snapshot.target)):0)+'%';
- $('#pulse').classList.toggle('off',!working);
- applyPrivacy();
+ const pulse=$('#pulse');if(pulse.classList.contains('off')===working)pulse.classList.toggle('off',!working);
+ if(rebuilt||staticChanged)applyPrivacy();
 }
 document.querySelectorAll('[data-hide]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.hide;hidden.has(k)?hidden.delete(k):hidden.add(k);applyPrivacy()}));$('#privacyAll').onclick=()=>{if(moneyKeys.every(k=>hidden.has(k))&&hidden.has('ranking'))hidden.clear();else{moneyKeys.forEach(k=>hidden.add(k));hidden.add('ranking')}applyPrivacy();renderRankings()};function setMode(mode){config.mode=mode;$('#grossBtn').setAttribute('aria-pressed',String(mode==='gross'));$('#netBtn').setAttribute('aria-pressed',String(mode==='net'));save();render()}$('#grossBtn').onclick=()=>setMode('gross');$('#netBtn').onclick=()=>setMode('net');$('#addJob').onclick=()=>{if(config.jobs.length>=8){alert(tr('직장은 최대 8개까지 추가할 수 있습니다.','You can add up to 8 jobs.'));return}const job=newJob(config.jobs.length+1);config.jobs.push(job);collapsedJobs.add(job.id);save();drawJobs();render()};$('#reset').onclick=()=>{if(!confirm(tr('저장된 모든 급여 설정을 초기화할까요?','Reset all saved salary settings?')))return;config={countryCompare:'KR',currency:'USD',rankCompareState:'CA',taxState:'AZ',includeBonusDaily:false,mode:'gross',netMethod:'auto',filing:'single',outside:0,hsa:0,extraDeduction:0,azDeduction:standardArizonaDeduction('single'),azDeductionCustomized:false,jobs:[newJob()]};$('#taxState').value='AZ';[['filing','single'],['outside',0],['hsa',0],['extraDeduction',0],['azDeduction',standardArizonaDeduction('single')]].forEach(([id,v])=>$('#'+id).value=v);hidden.clear();inputHidden.clear();collapsedJobs.clear();config.jobs.forEach(job=>collapsedJobs.add(job.id));$('#currencySelect').value='USD';loadDisplayCurrency('USD');$('#includeBonusDaily').checked=false;save();drawJobs();setMode('gross')};[['filing','filing'],['outside','outside'],['hsa','hsa'],['extraDeduction','extraDeduction'],['azDeduction','azDeduction']].forEach(([id,key])=>{const el=$('#'+id);el.value=config[key]??(key==='azDeduction'?standardArizonaDeduction(config.filing):0);const onEdit=()=>{config[key]=key==='filing'?el.value:Number(el.value)||0;if(key==='azDeduction')config.azDeductionCustomized=true;if(key==='filing'&&!config.azDeductionCustomized){config.azDeduction=standardArizonaDeduction(config.filing);$('#azDeduction').value=config.azDeduction;}save();render()};el.addEventListener('input',onEdit);el.addEventListener('change',onEdit)});const bonusToggle=$('#includeBonusDaily');bonusToggle.checked=!!config.includeBonusDaily;bonusToggle.addEventListener('change',()=>{config.includeBonusDaily=bonusToggle.checked;save();render()});const currencySelect=$('#currencySelect');currencySelect.value=CURRENCY_CHOICES.includes(config.currency)?config.currency:'USD';config.currency=currencySelect.value;currencySelect.addEventListener('change',()=>{config.currency=currencySelect.value;save();loadDisplayCurrency(config.currency)});const countrySelect=$('#intlCountry');countrySelect.value=GLOBAL_COUNTRIES[config.countryCompare]?config.countryCompare:'KR';config.countryCompare=countrySelect.value;countrySelect.addEventListener('change',()=>{config.countryCompare=countrySelect.value;save();loadCountryRate()});loadCountryRate();const rankSelect=$('#rankCompareState');rankSelect.value=INCOME_RANK_STATE_NAMES[config.rankCompareState]?config.rankCompareState:'CA';rankSelect.addEventListener('change',()=>{config.rankCompareState=rankSelect.value;save();renderRankings()});$('#rankHide').addEventListener('click',()=>{hidden.has('ranking')?hidden.delete('ranking'):hidden.add('ranking');renderRankings()});const stateSelect=$('#taxState');stateSelect.value=TAX_STATES[config.taxState]?config.taxState:'AZ';config.taxState=stateSelect.value;stateSelect.addEventListener('change',()=>{config.taxState=stateSelect.value;save();render();drawJobs()});drawJobs();refreshLanguage();$('#referenceStatusPanel').addEventListener('toggle',()=>{if($('#referenceStatusPanel').open)loadReferenceAudit()});initializeAds();setMode(config.mode);loadDisplayCurrency(config.currency);let liveTimer=null;function resumeTicker(){if(liveTimer!==null){clearInterval(liveTimer);liveTimer=null}if(!document.hidden){render();liveTimer=setInterval(render,200)}}document.addEventListener('visibilitychange',resumeTicker);resumeTicker();
 })();
