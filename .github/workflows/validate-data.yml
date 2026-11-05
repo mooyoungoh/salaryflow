@@ -24,6 +24,8 @@ jobs:
           node-version: '22'
       - name: Validate active datasets and regression samples
         run: node scripts/validate-data.mjs
+      - name: Verify reference status panel
+        run: node scripts/test-reference-status.mjs
       - name: Verify atomic tax-year rollover rules
         run: node scripts/test-activate-tax-year.mjs
       - name: Test Arizona official data extractor
