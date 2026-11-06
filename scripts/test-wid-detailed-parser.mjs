@@ -10,7 +10,7 @@ const rows=parseWidRows(lines,'US');
 assert.equal(rows.length,99);
 assert.deepEqual(rows[49],[50,60000]);
 assert.deepEqual(rows[98],[99,118800]);
-assert.throws(()=>parseWidRows(lines.filter(v=>!v.includes('p99p100;2024')),'US'),/missing required/);
+assert.throws(()=>parseWidRows(lines.filter(v=>!v.includes('p99p100;2024')),'US'),/missing valid official/);
 assert.throws(()=>parseWidRows(lines.filter(v=>!v.includes(';p0p100;')),'US'),/price index/);
 assert.throws(()=>parseWidRows(lines.concat('US;'+THRESHOLD+';p90p100;2024;90000;992;j'),'US'),/Duplicate/);
 console.log('PASS: official WID rows, price conversion, target year and completeness');
