@@ -1002,19 +1002,53 @@ async function loadCensusIncomeRank(){
 const GLOBAL_COUNTRIES=REFERENCE_DATA.world;
 const GLOBAL_PERCENTILES=[25,50,75,90,95,99];
 const GLOBAL_FX_CACHE_KEY='salary-flow-country-fx';
-let globalFx={currency:'',rate:0,date:'',pending:false,error:false},globalFxRequest=0;
-function estimateCountryTop(value,breaks){
- if(!(value>0))return null;
- if(value<breaks[0])return 75;
- if(value>=breaks[breaks.length-1])return 1;
- for(let i=0;i<breaks.length-1;i++){
-  if(value<=breaks[i+1]){
-   const p=GLOBAL_PERCENTILES[i]+(GLOBAL_PERCENTILES[i+1]-GLOBAL_PERCENTILES[i])*(Math.log(value)-Math.log(breaks[i]))/(Math.log(breaks[i+1])-Math.log(breaks[i]));
-   return 100-p;
+// Every country (including US) uses the same WID pretax-income definition.
+// Never infer a fractional rank from sparse 6-point snapshots.
+let WID_DETAILED=null;
+function verifiedWidDetailed(data){
+ if(!data||data.schema!==1||data.incomeYear!==2024||data.variable!=='tptinc992j'||data.priceVariable!=='inyixx999i'||!data.source?.startsWith('https://wid.world/'))return false;
+ if(Object.keys(data.values||{}).sort().join(',')!==Object.keys(GLOBAL_COUNTRIES).sort().join(','))return false;
+ return Object.values(data.values).every(entry=>{
+  const p=entry?.points;
+  return Array.isArray(p)&&p.length>=6&&p.every((point,i)=>
+   Array.isArray(point)&&point.length===2&&Number.isInteger(point[0])&&point[0]>=1&&point[0]<=99&&
+   Number.isFinite(point[1])&&point[1]>0&&(!i||(point[0]>p[i-1][0]&&point[1]>=p[i-1][1])))&&
+   [50,90,95,99].every(q=>p.some(point=>point[0]===q));
+ });
+}
+function widPercentilePairs(code){
+ const detailed=WID_DETAILED?.values?.[code]?.points;
+ return detailed||GLOBAL_PERCENTILES.map((p,i)=>[p,GLOBAL_COUNTRIES[code].points[i]]);
+}
+function countryRankBand(value,pairs){
+ if(!(value>0)||!Array.isArray(pairs)||pairs.length<2)return null;
+ if(value<pairs[0][1])return {below:true,threshold:pairs[0][0]};
+ for(let i=pairs.length-1;i>=0;i--){
+  if(value>=pairs[i][1]){
+   if(i===pairs.length-1)return {top:100-pairs[i][0]};
+   return {low:100-pairs[i+1][0],high:100-pairs[i][0]};
   }
  }
- return 1;
+ return null;
 }
+function formatCountryRank(value,pairs){
+ const band=countryRankBand(value,pairs);
+ if(!band)return '—';
+ if(band.below)return tr('상위 '+(100-band.threshold)+'% 밖','Below top '+(100-band.threshold)+'%');
+ if(band.top!==undefined)return tr('상위 '+band.top+'% 이내','Top '+band.top+'%');
+ return tr('상위 약 ','Approx. top ')+band.low+'–'+band.high+'%';
+}
+async function loadWidDetailed(){
+ try{
+  const res=await fetch('./data/income-world-wid-percentiles-2024.json',{cache:'no-cache'});
+  if(!res.ok)throw Error('Detailed WID series not published');
+  const data=await res.json();
+  if(!verifiedWidDetailed(data))throw Error('WID detailed percentile file failed verification');
+  WID_DETAILED=data;
+ }catch(error){console.warn('WID details unavailable; showing only bounded ranges from existing points',error)}
+ renderCountryRank();
+}
+let globalFx={currency:'',rate:0,date:'',pending:false,error:false},globalFxRequest=0;
 async function loadCountryRate(){
  const code=config.countryCompare,record=GLOBAL_COUNTRIES[code],currency=record.currency,id=++globalFxRequest;
  globalFx={currency,rate:0,date:'',pending:true,error:false};
@@ -1044,10 +1078,8 @@ function renderCountryRank(){
  const ready=globalFx.currency===rec.currency&&globalFx.rate>0;
  const masked=hidden.has('ranking');
  const localGross=gross*(ready?globalFx.rate:0);
- const rank=ready?estimateCountryTop(localGross,rec.points):null;
- const usPoints=GLOBAL_COUNTRIES.US.points;
- const usRank=estimateCountryTop(gross,usPoints);
- const formatRank=(value,points,percentage)=>value<points[0]?tr('상위 75% 밖','Below P25'):value>=points[5]?tr('상위 1% 이내','Top 1%+'):tr('상위 약 ','Top ~')+percentage.toFixed(1)+'%';
+ const localPairs=widPercentilePairs(config.countryCompare in GLOBAL_COUNTRIES?config.countryCompare:'KR');
+ const usPairs=widPercentilePairs('US');
  const formatMoney=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:rec.currency,maximumFractionDigits:0}).format(v);
  $('#intlTitle').textContent=tr('국가별 소득 상위 % 비교','Country income percentile comparison');
  $('#intlYear').textContent=tr(REFERENCE_DATA.years.world+'년 WID 자료','WID income data · '+REFERENCE_DATA.years.world);
@@ -1056,14 +1088,15 @@ function renderCountryRank(){
  $('#intlRankLabel').textContent=tr(label+' 소득 상위 비율',label+' income rank');
  $('#intlIncomeLabel').textContent=tr('현지 통화로 환산한 연봉','Annual income in local currency');
  $('#intlMedianLabel').textContent=tr('현지 소득 중앙값','Local income median');
- $('#intlUSRank').textContent=masked?'••••':formatRank(gross,usPoints,usRank);
- $('#intlRank').textContent=masked?'••••':!ready?'—':formatRank(localGross,rec.points,rank);
+ $('#intlUSRank').textContent=masked?'••••':formatCountryRank(gross,usPairs);
+ $('#intlRank').textContent=masked?'••••':!ready?'—':formatCountryRank(localGross,localPairs);
  $('#intlIncome').textContent=masked?'••••':ready?formatMoney(localGross):'—';
- $('#intlMedian').textContent=masked?'••••':formatMoney(rec.points[1]);
- let note=tr('미국과 선택 국가 모두 WID '+REFERENCE_DATA.years.world+'년 성인(20세 이상) 세전 국민소득 분포로 비교합니다. 위 미국 주별 DQYDJ 순위와는 다른 통계입니다. 현재 환율로 환산하며 물가·구매력·통계연도 차이를 보정하지 않은 참고용 추정치입니다.','Both country rankings use WID '+REFERENCE_DATA.years.world+' pre-tax national income distributions for adults 20+. This differs from the DQYDJ US state rankings above. Market FX conversion does not adjust for purchasing power, inflation, or data-year differences.');
+ $('#intlMedian').textContent=masked?'••••':formatMoney((localPairs.find(p=>p[0]===50)||[50,rec.points[1]])[1]);
+ let note=tr('미국과 선택 국가 모두 WID '+REFERENCE_DATA.years.world+'년 성인(20세 이상) 세전 국민소득 분포로 비교합니다. 위 미국·주별 Census 근로소득 순위와는 다른 통계입니다. 현재 환율로 환산하며 물가·구매력·통계연도 차이를 보정하지 않은 참고용 추정치입니다.','Both country rankings use WID '+REFERENCE_DATA.years.world+' pre-tax national income distributions for adults 20+. This differs from the Census earnings rankings above. Market FX conversion does not adjust for purchasing power, inflation, or data-year differences.');
  if(!ready)note=tr('환율을 가져오지 못해 국가별 순위를 계산할 수 없습니다. ','Country rank unavailable until a valid exchange rate loads. ')+note;
  else if(globalFx.error)note=tr('저장된 환율 사용','Using cached FX rate')+' · '+note;
  else if(rec.currency!=='USD')note=tr('환율 기준일: ','FX date: ')+(globalFx.date||'—')+' · '+note;
+ note+=WID_DETAILED?tr(' · WID 발표 분위값 기반 구간 표시(보간 없음).',' · Published WID percentile bands, no interpolation.'):tr(' · 일부 국가 상세 분위 데이터 미확인: 6개 기존 기준점의 넓은 구간만 표시(보간 없음).',' · Detailed WID percentiles unavailable: only broad bands between six existing thresholds (no interpolation).');
  $('#intlNotice').textContent=note;
  const slug=rec.name.toLowerCase().replaceAll(' ','-');
  $('#intlDetailLink').href='https://rankmyincome.com/countries/'+slug+'/';
@@ -1230,6 +1263,6 @@ function render(){
  const pulse=$('#pulse');if(pulse.classList.contains('off')===working)pulse.classList.toggle('off',!working);
  if(rebuilt||staticChanged)applyPrivacy();
 }
-document.querySelectorAll('[data-hide]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.hide;hidden.has(k)?hidden.delete(k):hidden.add(k);applyPrivacy()}));$('#privacyAll').onclick=()=>{if(moneyKeys.every(k=>hidden.has(k))&&hidden.has('ranking'))hidden.clear();else{moneyKeys.forEach(k=>hidden.add(k));hidden.add('ranking')}applyPrivacy();renderRankings()};function setMode(mode){config.mode=mode;$('#grossBtn').setAttribute('aria-pressed',String(mode==='gross'));$('#netBtn').setAttribute('aria-pressed',String(mode==='net'));save();render()}$('#grossBtn').onclick=()=>setMode('gross');$('#netBtn').onclick=()=>setMode('net');$('#addJob').onclick=()=>{if(config.jobs.length>=8){alert(tr('직장은 최대 8개까지 추가할 수 있습니다.','You can add up to 8 jobs.'));return}const job=newJob(config.jobs.length+1);config.jobs.push(job);collapsedJobs.add(job.id);save();drawJobs();render()};$('#reset').onclick=()=>{if(!confirm(tr('저장된 모든 급여 설정을 초기화할까요?','Reset all saved salary settings?')))return;config={countryCompare:'KR',currency:'USD',rankCompareState:'CA',taxState:'AZ',includeBonusDaily:false,mode:'gross',netMethod:'auto',filing:'single',outside:0,hsa:0,extraDeduction:0,azDeduction:standardArizonaDeduction('single'),azDeductionCustomized:false,jobs:[newJob()]};$('#taxState').value='AZ';[['filing','single'],['outside',0],['hsa',0],['extraDeduction',0],['azDeduction',standardArizonaDeduction('single')]].forEach(([id,v])=>$('#'+id).value=v);hidden.clear();inputHidden.clear();collapsedJobs.clear();config.jobs.forEach(job=>collapsedJobs.add(job.id));$('#currencySelect').value='USD';loadDisplayCurrency('USD');$('#includeBonusDaily').checked=false;save();drawJobs();setMode('gross')};[['filing','filing'],['outside','outside'],['hsa','hsa'],['extraDeduction','extraDeduction'],['azDeduction','azDeduction']].forEach(([id,key])=>{const el=$('#'+id);el.value=config[key]??(key==='azDeduction'?standardArizonaDeduction(config.filing):0);const onEdit=()=>{config[key]=key==='filing'?el.value:Number(el.value)||0;if(key==='azDeduction')config.azDeductionCustomized=true;if(key==='filing'&&!config.azDeductionCustomized){config.azDeduction=standardArizonaDeduction(config.filing);$('#azDeduction').value=config.azDeduction;}save();render()};el.addEventListener('input',onEdit);el.addEventListener('change',onEdit)});const bonusToggle=$('#includeBonusDaily');bonusToggle.checked=!!config.includeBonusDaily;bonusToggle.addEventListener('change',()=>{config.includeBonusDaily=bonusToggle.checked;save();render()});const currencySelect=$('#currencySelect');currencySelect.value=CURRENCY_CHOICES.includes(config.currency)?config.currency:'USD';config.currency=currencySelect.value;currencySelect.addEventListener('change',()=>{config.currency=currencySelect.value;save();loadDisplayCurrency(config.currency)});const countrySelect=$('#intlCountry');countrySelect.value=GLOBAL_COUNTRIES[config.countryCompare]?config.countryCompare:'KR';config.countryCompare=countrySelect.value;countrySelect.addEventListener('change',()=>{config.countryCompare=countrySelect.value;save();loadCountryRate()});loadCountryRate();const rankSelect=$('#rankCompareState');rankSelect.value=INCOME_RANK_STATE_NAMES[config.rankCompareState]?config.rankCompareState:'CA';rankSelect.addEventListener('change',()=>{config.rankCompareState=rankSelect.value;save();renderRankings()});$('#rankHide').addEventListener('click',()=>{hidden.has('ranking')?hidden.delete('ranking'):hidden.add('ranking');renderRankings()});const stateSelect=$('#taxState');stateSelect.value=TAX_STATES[config.taxState]?config.taxState:'AZ';config.taxState=stateSelect.value;stateSelect.addEventListener('change',()=>{config.taxState=stateSelect.value;save();render();drawJobs()});drawJobs();enhanceSelects(document);refreshLanguage();$('#referenceStatusPanel').addEventListener('toggle',()=>{if($('#referenceStatusPanel').open)loadReferenceAudit()});initializeAds();setMode(config.mode);loadDisplayCurrency(config.currency);loadCensusIncomeRank();let liveTimer=null;function resumeTicker(){if(liveTimer!==null){clearInterval(liveTimer);liveTimer=null}if(!document.hidden){render();liveTimer=setInterval(render,200)}}document.addEventListener('visibilitychange',resumeTicker);resumeTicker();
+document.querySelectorAll('[data-hide]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.hide;hidden.has(k)?hidden.delete(k):hidden.add(k);applyPrivacy()}));$('#privacyAll').onclick=()=>{if(moneyKeys.every(k=>hidden.has(k))&&hidden.has('ranking'))hidden.clear();else{moneyKeys.forEach(k=>hidden.add(k));hidden.add('ranking')}applyPrivacy();renderRankings()};function setMode(mode){config.mode=mode;$('#grossBtn').setAttribute('aria-pressed',String(mode==='gross'));$('#netBtn').setAttribute('aria-pressed',String(mode==='net'));save();render()}$('#grossBtn').onclick=()=>setMode('gross');$('#netBtn').onclick=()=>setMode('net');$('#addJob').onclick=()=>{if(config.jobs.length>=8){alert(tr('직장은 최대 8개까지 추가할 수 있습니다.','You can add up to 8 jobs.'));return}const job=newJob(config.jobs.length+1);config.jobs.push(job);collapsedJobs.add(job.id);save();drawJobs();render()};$('#reset').onclick=()=>{if(!confirm(tr('저장된 모든 급여 설정을 초기화할까요?','Reset all saved salary settings?')))return;config={countryCompare:'KR',currency:'USD',rankCompareState:'CA',taxState:'AZ',includeBonusDaily:false,mode:'gross',netMethod:'auto',filing:'single',outside:0,hsa:0,extraDeduction:0,azDeduction:standardArizonaDeduction('single'),azDeductionCustomized:false,jobs:[newJob()]};$('#taxState').value='AZ';[['filing','single'],['outside',0],['hsa',0],['extraDeduction',0],['azDeduction',standardArizonaDeduction('single')]].forEach(([id,v])=>$('#'+id).value=v);hidden.clear();inputHidden.clear();collapsedJobs.clear();config.jobs.forEach(job=>collapsedJobs.add(job.id));$('#currencySelect').value='USD';loadDisplayCurrency('USD');$('#includeBonusDaily').checked=false;save();drawJobs();setMode('gross')};[['filing','filing'],['outside','outside'],['hsa','hsa'],['extraDeduction','extraDeduction'],['azDeduction','azDeduction']].forEach(([id,key])=>{const el=$('#'+id);el.value=config[key]??(key==='azDeduction'?standardArizonaDeduction(config.filing):0);const onEdit=()=>{config[key]=key==='filing'?el.value:Number(el.value)||0;if(key==='azDeduction')config.azDeductionCustomized=true;if(key==='filing'&&!config.azDeductionCustomized){config.azDeduction=standardArizonaDeduction(config.filing);$('#azDeduction').value=config.azDeduction;}save();render()};el.addEventListener('input',onEdit);el.addEventListener('change',onEdit)});const bonusToggle=$('#includeBonusDaily');bonusToggle.checked=!!config.includeBonusDaily;bonusToggle.addEventListener('change',()=>{config.includeBonusDaily=bonusToggle.checked;save();render()});const currencySelect=$('#currencySelect');currencySelect.value=CURRENCY_CHOICES.includes(config.currency)?config.currency:'USD';config.currency=currencySelect.value;currencySelect.addEventListener('change',()=>{config.currency=currencySelect.value;save();loadDisplayCurrency(config.currency)});const countrySelect=$('#intlCountry');countrySelect.value=GLOBAL_COUNTRIES[config.countryCompare]?config.countryCompare:'KR';config.countryCompare=countrySelect.value;countrySelect.addEventListener('change',()=>{config.countryCompare=countrySelect.value;save();loadCountryRate()});loadCountryRate();const rankSelect=$('#rankCompareState');rankSelect.value=INCOME_RANK_STATE_NAMES[config.rankCompareState]?config.rankCompareState:'CA';rankSelect.addEventListener('change',()=>{config.rankCompareState=rankSelect.value;save();renderRankings()});$('#rankHide').addEventListener('click',()=>{hidden.has('ranking')?hidden.delete('ranking'):hidden.add('ranking');renderRankings()});const stateSelect=$('#taxState');stateSelect.value=TAX_STATES[config.taxState]?config.taxState:'AZ';config.taxState=stateSelect.value;stateSelect.addEventListener('change',()=>{config.taxState=stateSelect.value;save();render();drawJobs()});drawJobs();enhanceSelects(document);refreshLanguage();$('#referenceStatusPanel').addEventListener('toggle',()=>{if($('#referenceStatusPanel').open)loadReferenceAudit()});initializeAds();setMode(config.mode);loadDisplayCurrency(config.currency);loadCensusIncomeRank();loadWidDetailed();let liveTimer=null;function resumeTicker(){if(liveTimer!==null){clearInterval(liveTimer);liveTimer=null}if(!document.hidden){render();liveTimer=setInterval(render,200)}}document.addEventListener('visibilitychange',resumeTicker);resumeTicker();
 })();
 </script></body></html>

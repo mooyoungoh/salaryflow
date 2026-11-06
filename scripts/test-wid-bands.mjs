@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+const html=readFileSync('index.html','utf8');
+assert(html.includes('loadWidDetailed();'),'WID detailed fetch must start');
+assert(!html.includes('estimateCountryTop('),'Never use old WID logarithmic interpolation');
+assert(!html.includes('D Q Y D J'),'No invented DQYDJ label');
+assert(!html.includes('D Q Y D J'),'Historical provenance should not reappear');
+assert(!html.includes('위 미국 주별 DQYDJ'),'Country comparison must refer to Census correctly');
+const start=html.indexOf('let WID_DETAILED=null;');
+const end=html.indexOf('let globalFx=',start);
+assert(start>0&&end>start,'WID helpers missing');
+const source=html.slice(start,end).replace('async function loadWidDetailed(){','async function loadWidDetailed(){');
+const original=[25,50,75,90,95,99];
+const ctx={GLOBAL_COUNTRIES:{US:{points:[25,50,75,90,95,99]},KR:{points:[25,50,75,90,95,99]}},GLOBAL_PERCENTILES:original,
+ tr:(a)=>a,fetch:async()=>({ok:false}),console:{warn:()=>{}},renderCountryRank:()=>{}};
+vm.createContext(ctx);
+vm.runInContext(source+';globalThis.band=countryRankBand;globalThis.format=formatCountryRank;globalThis.valid=verifiedWidDetailed;',ctx);
+assert.equal(ctx.format(92,original.map((p,i)=>[p,[25,50,75,90,95,99][i]])),'상위 약 5–10%');
+assert.equal(ctx.format(150,original.map(p=>[p,p])),'상위 1% 이내');
+assert.equal(ctx.format(20,original.map(p=>[p,p])),'상위 75% 밖');
+const q=Array.from({length:99},(_,i)=>[i+1,(i+1)*100]);
+const d={schema:1,incomeYear:2024,variable:'tptinc992j',priceVariable:'inyixx999i',source:'https://wid.world/data/',values:{US:{points:q},KR:{points:q}}};
+assert(ctx.valid(d),'Complete matched countries with real quantiles should be accepted');
+assert(!ctx.valid({...d,values:{US:{points:q}}}),'Missing country must reject detailed file');
+assert(!ctx.valid({...d,values:{US:{points:q.map(([p,v])=>[p,100-p])},KR:{points:q}}}),'Non-monotone percentile data must reject');
+assert.equal(ctx.format(8150,q),'상위 약 18–19%');
+console.log('PASS: equal WID methodology, honest bands, source validation and no interpolation');
