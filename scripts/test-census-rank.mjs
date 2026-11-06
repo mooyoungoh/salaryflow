@@ -21,7 +21,7 @@ const data={schema:2,incomeYear:2024,metric:'PERNP',weight:'PWGTP',inflationAdju
  values:Object.fromEntries(['US',...Array.from({length:51},(_,i)=>'S'+i)].map(s=>[s,values]))};
 assert(ctx.valid(data),'Valid 52-jurisdiction dataset should be accepted');
 assert.equal(ctx.bucket(99500,values)[0],0,'Income exceeding P99 must remain top 1%, never fake 0.1%');
-assert.deepEqual(Array.from(ctx.bucket(80500,values)),[18,19],'Use empirical P81-P82 bracket for top 18-19%');
+assert.deepEqual(Array.from(ctx.bucket(81500,values)),[18,19],'Use empirical P81-P82 bracket for top 18-19%');
 assert.equal(ctx.valid({...data,values:{US:values}}),false,'Incomplete states must fail closed');
 assert.equal(ctx.valid({...data,source:'https://example.com/'}),false,'Unverified origin must fail closed');
 assert.equal(ctx.valid({...data,values:{...data.values,US:[...values.slice(0,30),0,...values.slice(31)]}}),false,'Nonmonotone thresholds must fail');
