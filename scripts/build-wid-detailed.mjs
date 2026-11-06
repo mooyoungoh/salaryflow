@@ -76,7 +76,7 @@ async function main(){
  for(const code of COUNTRIES){
   const points=await download(code);
   values[code]={points};
-  console.log(code,points.length,'official percentile thresholds, P99',points.find(x=>x[0]===99)?.[1],flush);
+  console.log(code,points.length,'official percentile thresholds, P99',points.find(x=>x[0]===99)?.[1]);
  }
  const data={schema:1,incomeYear:YEAR,variable:THRESHOLD,priceVariable:PRICE,
   source:'https://wid.world/data/',
