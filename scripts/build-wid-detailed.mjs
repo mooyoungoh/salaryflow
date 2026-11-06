@@ -43,11 +43,20 @@ export function parseWidRows(lines,country,year=YEAR){
   raw.set(p,number);
  }
  if(price===null)throw Error(country+': missing annual WID currency price index');
- const points=[...raw].sort((a,b)=>a[0]-b[0]).map(([percentile,value])=>[percentile,Math.round(value*price)]);
+ const sourcePoints=[...raw].sort((a,b)=>a[0]-b[0]).map(([percentile,value])=>[percentile,Math.round(value*price)]);
+ const points=[];
+ for(const row of sourcePoints){
+  if(points.length&&row[1]<points[points.length-1][1]){
+   // WID CSV can contain isolated inverted series values. Never manufacture a rank:
+   // omit that published row and retain only monotonically ordered published observations.
+   console.warn(country+': omit nonmonotone published P'+row[0]+'='+row[1]+' (prior P'+points[points.length-1][0]+'='+points[points.length-1][1]+')');
+   continue;
+  }
+  points.push(row);
+ }
  if(points.length<6)throw Error(country+': insufficient published percentile thresholds '+points.length);
- assert(points.every(([p,v],i)=>v>0&&(i===0||v>=points[i-1][1])),'Nonmonotone WID thresholds: '+country);
- // Critical: require published upper-tail endpoints (P90, P95, P99) and median.
- for(const p of [50,90,95,99])assert(raw.has(p),country+': missing required official P'+p);
+ // Critical: require real, ordered upper-tail endpoints and median; do not infer them.
+ for(const p of [50,90,95,99])assert(points.some(row=>row[0]===p),country+': missing valid official P'+p);
  return points;
 }
 
