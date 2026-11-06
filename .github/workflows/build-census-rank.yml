@@ -30,13 +30,24 @@ jobs:
           python-version: '3.12'
       - name: Verify Census ranking parser with offline fixtures
         run: python3 -m unittest scripts/test_build_census_rank.py -v
+      - name: Reuse already validated published Census table
+        id: existing
+        shell: bash
+        run: |
+          if python3 scripts/validate_census_rank.py; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Download ALL 2024 Census ACS PUMS person state files and aggregate weighted ranks
+        if: steps.existing.outputs.valid != 'true'
         run: python3 -u scripts/build_census_rank.py --download --output data/income-census-2024.json
       - name: Reject incomplete or invalid Census table
         run: |
           python3 scripts/validate_census_rank.py
           node scripts/test-census-rank.mjs
       - name: Commit official data only to Test PR branch
+        if: steps.existing.outputs.valid != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
