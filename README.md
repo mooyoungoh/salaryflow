@@ -19,6 +19,18 @@ Published 2024 PUMS dataset verification: 52 jurisdictions, **1,764,845** eligib
 
 Methodological limitations: PUMS is a sample, not a census of every worker. Personal earnings (`PERNP`) are not the same as all-source personal income (`PINCP`) or household income. The dataset uses 2024 earnings in 2024 dollars; current pay isn't automatically inflation-adjusted. PUMS top-coding and state sample uncertainty prohibit trustworthy top 0.1% or 0.01% claims. The UI uses explicit *1-percentage-point intervals*, not an assumed precision of tenths.
 
+## International income ranking: verified WID percentile bands (Test)
+
+The international comparison uses the **same WID 2024 equal-split, pretax national income definition for the US and each selected country**. The separate US/state cards use Census ACS PUMS **personal earnings**, so their ranking values are not directly comparable to WID national-income ranks.
+
+The international comparison no longer interpolates decimal ranks from six sparse points. Instead it loads `data/income-world-wid-percentiles-2024.json`, generated from **official** per-country WID bulk CSV files, series `tptinc992j` (age 20+, equal split), price-index series `inyixx999i`, 2024. It displays **honest percentile intervals** (e.g. approx. top 18–19%) between nearest published threshold values. Missing, non-positive, or out-of-order source observations are excluded rather than invented. The verified 2024 dataset contains 95 percentiles for most countries (US 98, Italy 93); no claims are made below the finest available threshold.
+
+- Generate: `node scripts/build-wid-detailed.mjs`
+- Validate: `node scripts/validate-wid-detailed.mjs`
+- Tests: `node scripts/test-wid-detailed-parser.mjs` and `node scripts/test-wid-bands.mjs`
+- If detailed JSON cannot load, only broad ranges between the six published baseline thresholds are shown, never interpolated decimals. Country vs US still both use WID.
+- Conversion uses the **current market FX rate**, not contemporaneous 2024 purchasing power parity, so country rankings are illustrative, not a cost-of-living-adjusted comparison.
+
 ## Reference data
 
 - `data/manifest.json` selects the active tax, US income and WID JSON versions.
