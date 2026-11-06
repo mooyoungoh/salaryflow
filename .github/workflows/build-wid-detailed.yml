@@ -1,0 +1,58 @@
+name: Build official WID detailed income percentiles
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build-wid-detailed.yml
+      - scripts/build-wid-detailed.mjs
+      - scripts/validate-wid-detailed.mjs
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: wid-detailed-2024
+  cancel-in-progress: true
+jobs:
+  collect:
+    if: github.event_name == 'pull_request' && github.head_ref == 'feat/wid-international-verified-percentile-bands' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/wid-international-verified-percentile-bands
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test WID parser and rank bands
+        run: |
+          node scripts/test-wid-detailed-parser.mjs
+          node scripts/test-wid-bands.mjs
+      - name: Check for already verified official data
+        id: existing
+        shell: bash
+        run: |
+          if test -f data/income-world-wid-percentiles-2024.json && node scripts/validate-wid-detailed.mjs; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Download official 2024 WID detailed distributions
+        if: steps.existing.outputs.valid != 'true'
+        run: node scripts/build-wid-detailed.mjs
+      - name: Validate official WID output
+        run: node scripts/validate-wid-detailed.mjs
+      - name: Commit verified data to Test PR only
+        if: steps.existing.outputs.valid != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/income-world-wid-percentiles-2024.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: publish official WID 2024 percentile thresholds"
+            git pull --rebase origin feat/wid-international-verified-percentile-bands
+            git push origin HEAD:feat/wid-international-verified-percentile-bands
+          fi
