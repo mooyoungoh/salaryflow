@@ -1,0 +1,39 @@
+name: Build official Census PUMS income ranking
+# One-time 2024 PUMS backfill. This workflow never runs on main.
+on:
+  push:
+    branches:
+      - feat/census-pums-weighted-rank-2024
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  census-pums:
+    if: github.ref == 'refs/heads/feat/census-pums-weighted-rank-2024' && !contains(github.event.head_commit.message, 'data: publish official Census')
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify Census ranking parser with offline fixtures
+        run: python3 -m unittest scripts/test_build_census_rank.py -v
+      - name: Download ALL 2024 Census ACS PUMS person state files and aggregate weighted ranks
+        run: python3 -u scripts/build_census_rank.py --download --output data/income-census-2024.json
+      - name: Reject incomplete or invalid Census table
+        run: |
+          python3 scripts/validate_census_rank.py
+          node scripts/test-census-rank.mjs
+      - name: Commit official data only to Test PR branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/income-census-2024.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: publish official Census 2024 PUMS weighted percentiles"
+            git push origin HEAD:feat/census-pums-weighted-rank-2024
+          fi
