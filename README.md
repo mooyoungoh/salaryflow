@@ -4,6 +4,19 @@ Staging URL: https://mooyoungoh.github.io/salaryflow/
 
 Production is maintained separately at https://salaryflow.github.io/. **Do not copy experimental datasets to the production organization without validating staging.**
 
+## US income ranking: Census ACS PUMS (Test only)
+
+The US/state income percentile cards now **refuse to show invented decimals or legacy 4-point logarithmic interpolation**. They load `data/income-census-2024.json` only if it contains all 50 states, DC and US weighted P1–P99 intervals. Until the official file is generated and validated, the cards explicitly display unavailable rather than a made-up number. Existing WID international comparisons remain separate.
+
+Official source: https://www.census.gov/programs-surveys/acs/microdata/access/2024.html (2024 ACS 1-Year PUMS; 2024 is the latest 1-year microdata release currently listed). The reproducible generator is `scripts/build_census_rank.py`. It downloads the **person-level** `csv_pXX.zip` files for all states/DC from Census FTP, filters `AGEP >= 16` and positive `PERNP` earnings, adjusts with `ADJINC / 1,000,000`, and computes survey-weighted empirical percentiles using `PWGTP`. One job can produce the entire public JSON; no key or third-party rankings required.
+
+- Build: `python3 scripts/build_census_rank.py --download --output data/income-census-2024.json`
+- Validate: `python3 scripts/validate_census_rank.py`
+- Offline tests: `python3 -m unittest scripts/test_build_census_rank.py -v` and `node scripts/test-census-rank.mjs`
+- Automation: `.github/workflows/build-census-rank.yml` only targets the isolated Test feature branch and commits the generated file there. **Do not merge without the complete validated generated JSON.**
+
+Methodological limitations: PUMS is a sample, not a census of every worker. Personal earnings (`PERNP`) are not the same as all-source personal income (`PINCP`) or household income. The dataset uses 2024 earnings in 2024 dollars; current pay isn't automatically inflation-adjusted. PUMS top-coding and state sample uncertainty prohibit trustworthy top 0.1% or 0.01% claims. The UI uses explicit *1-percentage-point intervals*, not an assumed precision of tenths.
+
 ## Reference data
 
 - `data/manifest.json` selects the active tax, US income and WID JSON versions.
