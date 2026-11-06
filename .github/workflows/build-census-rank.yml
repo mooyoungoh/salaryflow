@@ -1,9 +1,9 @@
 name: Build official Census PUMS income ranking
 # One-time 2024 PUMS backfill. This workflow never runs on main.
 on:
-  push:
+  pull_request:
     branches:
-      - feat/census-pums-weighted-rank-2024
+      - main
     paths:
       - .github/workflows/build-census-rank.yml
       - scripts/build_census_rank.py
@@ -16,7 +16,7 @@ permissions:
   contents: write
 jobs:
   census-pums:
-    if: github.ref == 'refs/heads/feat/census-pums-weighted-rank-2024' && !contains(github.event.head_commit.message, 'data: publish official Census')
+    if: github.event_name == 'pull_request' && github.head_ref == 'feat/census-pums-weighted-rank-2024' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 55
     steps:
@@ -24,6 +24,7 @@ jobs:
         with:
           persist-credentials: true
           fetch-depth: 0
+          ref: feat/census-pums-weighted-rank-2024
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
