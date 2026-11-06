@@ -1080,7 +1080,7 @@ function renderRankings(){
   if(hiddenRank)return '••••';
   if(!(gross>0))return '—';
   const pts=values?.[code];
-  if(!pts)return tr('Census 순위 자료 준비 중','Awaiting verified Census data');
+  if(!pts)return CENSUS_RANK_ERROR?tr('검증된 Census 데이터 없음','Verified Census data unavailable'):tr('Census 순위 자료 로딩 중','Loading Census ranks');
   const band=censusRankBucket(gross,pts);
   if(!band)return '—';
   if(band[0]===0)return tr('상위 1% 이내','Top 1%');
@@ -1100,7 +1100,7 @@ function renderRankings(){
  $('#rankCompareLabel').textContent=tr('비교할 주','Compare another state');
  $('#rankAccuracy').textContent=CENSUS_RANK
   ?tr('Census 표본 가중치 기반 1% 구간 · 상위 1% 이하는 구분 불가 · 정확한 개인 순위 아님','Census weighted 1-percent bands · top 1% cannot be subdivided · survey estimate')
-  :tr('검증된 Census 원자료 집계 대기 중 · 기존 4개 기준점의 보간값은 표시하지 않습니다','Awaiting verified Census microdata · legacy four-point interpolation is disabled');
+  :(CENSUS_RANK_ERROR?tr('검증된 Census 자료가 아직 없습니다 · 기존 추정 순위는 표시하지 않습니다','Census dataset unavailable · legacy interpolated ranking disabled'):tr('Census 원자료 로딩 중 · 기존 추정 순위는 표시하지 않습니다','Loading Census microdata · legacy four-point interpolation is disabled'));
  $('#rankSourceNote').textContent=tr('근로·사업소득(PERNP) 양수인 16세 이상 개인. 가구소득·세후소득 아님. 표본·상한처리 오차 있음.','Age 16+ with positive personal earnings (PERNP). Not household/after-tax income; sampling and top-coding limitations.');
  const link=$('#rankSourceLink');
  link.href='https://www.census.gov/programs-surveys/acs/microdata/access/2024.html';
