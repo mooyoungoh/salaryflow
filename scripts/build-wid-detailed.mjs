@@ -46,6 +46,7 @@ export function parseWidRows(lines,country,year=YEAR){
  const sourcePoints=[...raw].sort((a,b)=>a[0]-b[0]).map(([percentile,value])=>[percentile,Math.round(value*price)]);
  const points=[];
  for(const row of sourcePoints){
+  if(row[1]<=0){console.warn(country+': omit WID P'+row[0]+' after rounding to nonpositive nominal threshold');continue;}
   if(points.length&&row[1]<points[points.length-1][1]){
    // WID CSV can contain isolated inverted series values. Never manufacture a rank:
    // omit that published row and retain only monotonically ordered published observations.
