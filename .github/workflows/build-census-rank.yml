@@ -1,0 +1,59 @@
+name: Build official Census PUMS income ranking
+# One-time 2024 PUMS backfill. This workflow never runs on main.
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build-census-rank.yml
+      - scripts/build_census_rank.py
+      - scripts/validate_census_rank.py
+  workflow_dispatch:
+concurrency:
+  group: census-rank-2024
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  census-pums:
+    if: github.event_name == 'pull_request' && github.head_ref == 'feat/census-pums-weighted-rank-2024' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+          ref: feat/census-pums-weighted-rank-2024
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify Census ranking parser with offline fixtures
+        run: python3 -m unittest scripts/test_build_census_rank.py -v
+      - name: Reuse already validated published Census table
+        id: existing
+        shell: bash
+        run: |
+          if python3 scripts/validate_census_rank.py; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Download ALL 2024 Census ACS PUMS person state files and aggregate weighted ranks
+        if: steps.existing.outputs.valid != 'true'
+        run: python3 -u scripts/build_census_rank.py --download --output data/income-census-2024.json
+      - name: Reject incomplete or invalid Census table
+        run: |
+          python3 scripts/validate_census_rank.py
+          node scripts/test-census-rank.mjs
+      - name: Commit official data only to Test PR branch
+        if: steps.existing.outputs.valid != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/income-census-2024.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: publish official Census 2024 PUMS weighted percentiles"
+            git pull --rebase origin feat/census-pums-weighted-rank-2024
+            git push origin HEAD:feat/census-pums-weighted-rank-2024
+          fi
