@@ -4,7 +4,14 @@ on:
   push:
     branches:
       - feat/census-pums-weighted-rank-2024
+    paths:
+      - .github/workflows/build-census-rank.yml
+      - scripts/build_census_rank.py
+      - scripts/validate_census_rank.py
   workflow_dispatch:
+concurrency:
+  group: census-rank-2024
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
@@ -35,5 +42,6 @@ jobs:
           git add data/income-census-2024.json
           if ! git diff --cached --quiet; then
             git commit -m "data: publish official Census 2024 PUMS weighted percentiles"
+            git pull --rebase origin feat/census-pums-weighted-rank-2024
             git push origin HEAD:feat/census-pums-weighted-rank-2024
           fi
