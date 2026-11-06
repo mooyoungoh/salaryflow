@@ -36,7 +36,9 @@ export function parseWidRows(lines,country,year=YEAR){
   if(!match)continue;
   const p=Number(match[1]);
   if(!PCTS.includes(p))continue;
-  assert(Number.isFinite(number)&&number>0,'Bad WID monetary threshold');
+  // WID distributes blank/NA/non-positive rows for unpublished or negative income thresholds.
+  // Exclude rather than manufacturing data; require genuine published P50/P90/P95/P99 below.
+  if(!Number.isFinite(number)||number<=0)continue;
   assert(!raw.has(p),'Duplicate WID percentile '+country+' '+pct);
   raw.set(p,number);
  }
