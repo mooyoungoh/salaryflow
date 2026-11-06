@@ -10,6 +10,8 @@ The US/state income percentile cards now **refuse to show invented decimals or l
 
 Official source: https://www.census.gov/programs-surveys/acs/microdata/access/2024.html (2024 ACS 1-Year PUMS; 2024 is the latest 1-year microdata release currently listed). The reproducible generator is `scripts/build_census_rank.py`. It downloads the **person-level** `csv_pXX.zip` files for all states/DC from Census FTP, filters `AGEP >= 16` and positive `PERNP` earnings, adjusts with `ADJINC / 1,000,000`, and computes survey-weighted empirical percentiles using `PWGTP`. One job can produce the entire public JSON; no key or third-party rankings required.
 
+Published 2024 PUMS dataset verification: 52 jurisdictions, **1,764,845** eligible unweighted person records nationwide, US median positive personal earnings **$46,702**, US P99 **$466,000**. Values are survey-weighted estimates, not tax thresholds or current-year salary predictions.
+
 - Build: `python3 scripts/build_census_rank.py --download --output data/income-census-2024.json`
 - Validate: `python3 scripts/validate_census_rank.py`
 - Offline tests: `python3 -m unittest scripts/test_build_census_rank.py -v` and `node scripts/test-census-rank.mjs`
