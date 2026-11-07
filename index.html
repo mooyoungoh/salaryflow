@@ -261,24 +261,20 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 <defs>
 <linearGradient id="duckBody" x1=".15" y1="0" x2=".8" y2="1"><stop stop-color="#fffdf3"/><stop offset=".68" stop-color="#ffedc9"/><stop offset="1" stop-color="#ffdca4"/></linearGradient>
 <linearGradient id="duckLaptop" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#858cad"/><stop offset="1" stop-color="#515674"/></linearGradient>
-<linearGradient id="duckHeadphone" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9280b5"/><stop offset="1" stop-color="#65547e"/></linearGradient>
 </defs>
 <!-- Decorative elements are independent of the character, with no scene background or cropped scenery. -->
 <g class="duck-accent duck-accent--sleep" fill="none" stroke="#9e91cb" stroke-width="3.1" stroke-linejoin="round" stroke-linecap="round"><path d="M20 38h12L20 51h12M34 20h9l-9 10h9"/></g>
 <g class="duck-accent duck-accent--start" fill="none" stroke="#f0af49" stroke-width="4.2" stroke-linecap="round"><path d="M21 30l-7-6m22-1-1-9m-14 29-10 1"/></g>
 <g class="duck-accent duck-accent--focus" fill="#ff8c44"><path d="M22 28l3 9 7 3-7 3-3 9-3-9-7-3 7-3Z"/><path d="M43 16l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z"/></g>
 <g class="duck-accent duck-accent--break"><path d="M21 37c-5-6 7-7 2-14m11 15c-5-6 7-7 2-14" stroke="#a7b3c7" stroke-width="2.8" fill="none" stroke-linecap="round"/></g>
-<g class="duck-accent duck-accent--overtime"><path d="M20 22q8-6 14 0t14 0" fill="none" stroke="#a991ba" stroke-width="3" stroke-linecap="round"/></g>
+<g class="duck-accent duck-accent--overtime">
+<path d="M16 24q8-8 15 0t15 0" fill="none" stroke="#a991ba" stroke-width="3" stroke-linecap="round"/>
+<path d="M21 39q5-5 10 0m-7 8q5-5 10 0" fill="none" stroke="#a991ba" stroke-width="2.5" stroke-linecap="round"/>
+</g>
 <!-- Compact duck body with round tummy and a single connected head tuft. -->
 <ellipse cx="107" cy="110" rx="43" ry="33" fill="#ffe1a8" stroke="#403347" stroke-width="4.2"/>
 <path d="M61 80C60 52 76 35 100 33c-6-8-4-17 2-19 9-3 19 7 23 19 20 7 34 24 34 48 0 32-22 51-50 51-30 0-48-19-48-52Z" fill="url(#duckBody)" stroke="#403347" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
-<!-- Headband sits above, earcups are drawn over both sides as one cohesive headset. -->
-<path d="M67 77C66 47 80 30 105 29c28-1 44 16 46 48" fill="none" stroke="#322841" stroke-width="12" stroke-linecap="round"/>
-<path d="M67 77C66 47 80 30 105 29c28-1 44 16 46 48" fill="none" stroke="#8c7ca8" stroke-width="5.7" stroke-linecap="round"/>
-<ellipse cx="67" cy="83" rx="12" ry="17" transform="rotate(10 67 83)" fill="url(#duckHeadphone)" stroke="#34283f" stroke-width="4"/>
-<path d="M64 70q-7 13-2 25" stroke="#aaa0c4" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-<ellipse cx="150" cy="83" rx="12" ry="17" transform="rotate(-10 150 83)" fill="url(#duckHeadphone)" stroke="#34283f" stroke-width="4"/>
-<path d="M153 69q7 14 2 26" stroke="#aaa0c4" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+<!-- No headset: keep the complete duck head outline visible. -->
 <!-- Soft cheeks, animated expressions controlled by existing schedule states. -->
 <ellipse cx="83" cy="96" rx="9" ry="6" fill="#f7aa9e" opacity=".55"/><ellipse cx="135" cy="96" rx="9" ry="6" fill="#f7aa9e" opacity=".55"/>
 <g class="duck-face duck-face--sleep" fill="none" stroke="#292638" stroke-width="4.3" stroke-linecap="round"><path d="M82 82q8 8 17 0m20 0q8 8 17 0"/></g>
@@ -291,7 +287,12 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 </g>
 <g class="duck-face duck-face--smile" fill="none" stroke="#292638" stroke-width="4.2" stroke-linecap="round"><path d="M83 86q8-12 16 0m20 0q8-12 16 0"/></g>
 <g class="duck-face duck-face--excited" fill="none" stroke="#292638" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M83 77l15 11-15 2m51-13-15 11 15 2"/></g>
-<g class="duck-face duck-face--tired" fill="none" stroke="#292638" stroke-width="4" stroke-linecap="round"><path d="M83 86q8 5 16-2m20 2q8 5 16-2"/></g>
+<g class="duck-face duck-face--tired">
+<!-- Extreme overtime fatigue: heavy undereye circles, barely open eyelids. -->
+<path d="M79 84q10-5 22-1m15 0q10-5 22 1" fill="none" stroke="#362f44" stroke-width="4.3" stroke-linecap="round"/>
+<path d="M81 89q9 8 19 1m17 0q9 7 19-1" fill="none" stroke="#5d506c" stroke-width="3.4" stroke-linecap="round"/>
+<path d="M83 95q8 5 16 0m20 0q8 5 16 0" fill="none" stroke="#a59db3" stroke-width="4.5" stroke-linecap="round" opacity=".85"/>
+</g>
 <path class="duck-face duck-face--tired" d="M151 99q10 13 0 17-10-4 0-17Z" fill="#92d5f3" stroke="#4b9dc5" stroke-width="1.8"/>
 <!-- A softly outlined two-lobed bill, not a tiny flat triangle. -->
 <path d="M97 93q8-8 15-3 8-2 13 5 8 2 7 8-5 9-21 11-18-1-23-11-1-8 9-10Z" fill="#f3a124" stroke="#c77a1d" stroke-width="2.8" stroke-linejoin="round"/>
