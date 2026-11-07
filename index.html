@@ -1262,8 +1262,8 @@ function updateShiftDuck(details){
  lastDuckState=state;lastDuckLang=lang;
  const labels={before:['아직 시작 전','Before work'],start:['이제 시작!','Just started'],focus:['집중 모드','Focus mode'],steady:['차곡차곡 수입 중','Making progress'],almost:['거의 퇴근!','Almost done'],done:['오늘도 수고했어!','Shift complete'],overtime:['아직 안 끝남…','Working overtime'],break:['잠깐 쉬는 중','On a break'],off:['오늘은 쉬는 날','Day off']};
  const node=$('#duckScene'),caption=$('#duckCaption'),label=labels[state];
- node.dataset.duckState=state;node.setAttribute('aria-label',lang==='ko'?'오리: '+label[0]:'Duck: '+label[1]);
- $('#dashboardDuck')?.setAttribute('data-duck-theme',state);
+ node.dataset.duckState=state;if(typeof node.setAttribute==='function')node.setAttribute('aria-label',lang==='ko'?'오리: '+label[0]:'Duck: '+label[1]);
+ const dashboard=$('#dashboardDuck');if(dashboard&&typeof dashboard.setAttribute==='function')dashboard.setAttribute('data-duck-theme',state);
  if(caption.textContent!==label[lang==='ko'?0:1])caption.textContent=label[lang==='ko'?0:1];
 }
 function render(){
