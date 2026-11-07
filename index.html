@@ -1327,7 +1327,7 @@ function applyPrivacy(){
  updateText('#privacyAll',all?tr('전체 표시','Show all'):tr('전체 숨기기','Hide all'));
 }
 function setMoney(key,v,d=2,suffix=''){
- const el=moneyElement(key);if(!el)return;
+ const el=typeof moneyElement==='function'?moneyElement(key):$(`[data-money="${key}"]`);if(!el)return;
  const raw=money(v,d)+suffix;
  if(el.dataset.raw!==raw)el.dataset.raw=raw;
  if(!hidden.has(key)&&el.textContent!==raw)el.textContent=raw;
