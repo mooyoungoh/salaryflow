@@ -181,7 +181,7 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 .ad-caption,.rank-eyebrow{color:#586d7e}
 
 /* Duck uses the original SalaryFlow card, with a localized soft glow only beside the mascot. */
-.dashboard{--duck-glow:#baa5e01e;position:relative;overflow:hidden;isolation:isolate;background:radial-gradient(ellipse 235px 190px at 94% 37%,var(--duck-glow) 0%,transparent 76%),linear-gradient(145deg,#203b48,#122131 70%);border-color:#385b62;transition:border-color .35s ease}
+.dashboard{--duck-glow:#b8b3d326;position:relative;overflow:hidden;isolation:isolate;background:radial-gradient(ellipse 240px 190px at 100% 0%,var(--duck-glow) 0%,transparent 78%),#f7fafc;border-color:#dce6eb;box-shadow:0 8px 24px #233a4c0d;transition:border-color .35s ease}
 .dashboard::before{content:none}
 .dashboard[data-duck-theme="before"]{--duck-glow:#9b91ce24}
 .dashboard[data-duck-theme="start"]{--duck-glow:#e4b47c24}
@@ -194,12 +194,12 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 .dashboard[data-duck-theme="off"]{--duck-glow:#85bfc51d}
 .duck-hero{display:grid;grid-template-columns:minmax(0,1fr) 168px;gap:12px;align-items:center;min-width:0}
 .duck-income{min-width:0}
-.duck-income .huge{font-size:clamp(39px,7vw,79px);color:#e0fff0}
+.duck-income .huge{font-size:clamp(39px,7vw,79px);color:#087e5b}
 .duck-income .primary-label{margin-top:18px}
-.duck-income .fine{color:#dce5ed}
+.duck-income .fine{color:#445d6b}
 .duck-scene{width:168px;min-width:0;align-self:end;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
 .duck-art{display:block;width:168px;height:154px;max-width:100%;overflow:visible}
-.duck-caption{display:block;font-size:11px;line-height:1.3;font-weight:800;color:#c2d2dd;margin:0 0 2px}
+.duck-caption{display:block;font-size:11px;line-height:1.3;font-weight:800;color:#536678;margin:0 0 2px}
 .duck-face,.duck-spark,.duck-z{display:none}
 [data-duck-state="before"] .duck-face--sleep,[data-duck-state="done"] .duck-face--sleep,[data-duck-state="off"] .duck-face--sleep{display:block}
 [data-duck-state="start"] .duck-face--smile,[data-duck-state="steady"] .duck-face--smile,[data-duck-state="break"] .duck-face--smile{display:block}
@@ -207,9 +207,16 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 [data-duck-state="almost"] .duck-face--excited,[data-duck-state="almost"] .duck-spark{display:block}
 [data-duck-state="overtime"] .duck-face--tired{display:block}
 [data-duck-state="before"] .duck-z,[data-duck-state="done"] .duck-z,[data-duck-state="off"] .duck-z{display:block}
-.dashboard .eyeline,.dashboard .clock{color:#e1e8f2}
-.dashboard .bar{background:#ffffff24}
-.dashboard .fine{color:#d5deeb}
+.dashboard .eyeline,.dashboard .clock{color:#486173}
+.dashboard .bar{background:#dcebe5}
+.dashboard .fine{color:#445d6b}
+/* Light card typography must stay legible in both app themes. */
+.dashboard .primary-label{color:#263f4d}
+.dashboard .mini strong,.dashboard #percent,.dashboard #worked,.dashboard #endCountdown,.dashboard #workStatus{color:#263f4d}
+.dashboard .privacy{color:#526a78}
+.dashboard .privacy:hover{background:#e7eff1}
+.dashboard .bar>div#progress{background:linear-gradient(90deg,#159b78,#45bd96)}
+
 @media(max-width:600px){
  .duck-hero{grid-template-columns:minmax(0,1fr) 105px;gap:5px}
  .duck-scene{width:105px}
