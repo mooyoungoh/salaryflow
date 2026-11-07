@@ -242,7 +242,7 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 @media(prefers-reduced-motion:reduce){.duck-progress-face{transition:none}}
 
 /* The reference artwork is a 5x2 spritesheet. SVG stays as a safe fallback if the image fails to load. */
-.duck-raster{display:none;width:168px;aspect-ratio:13/11;max-width:100%;background-image:url("./assets/duck-states.webp");background-size:500% 200%;background-repeat:no-repeat;background-position:0% 0%;-webkit-mask-image:radial-gradient(ellipse 72% 77% at 50% 52%,#000 71%,transparent 100%);mask-image:radial-gradient(ellipse 72% 77% at 50% 52%,#000 71%,transparent 100%)}
+.duck-raster{display:none;width:168px;aspect-ratio:13/11;max-width:100%;background-image:url("./assets/duck-states.webp");background-size:500% 200%;background-repeat:no-repeat;background-position:0% 0%;mix-blend-mode:multiply;filter:saturate(.86) contrast(1.04);-webkit-mask-image:radial-gradient(ellipse 83% 87% at 51% 51%,#000 54%,#000e 66%,#0009 77%,transparent 97%);mask-image:radial-gradient(ellipse 83% 87% at 51% 51%,#000 54%,#000e 66%,#0009 77%,transparent 97%)}
 .duck-scene.duck-image-loaded .duck-raster{display:block}
 .duck-scene.duck-image-loaded .duck-art{display:none}
 [data-duck-state="before"] .duck-raster{background-position:0% 0%}
