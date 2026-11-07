@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Test SSA parser (offline)
         run: python3 -m unittest discover -s scripts -p 'test_propose_ssa_payroll.py' -v
       - name: Generate candidate from official SSA sources
