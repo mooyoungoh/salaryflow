@@ -235,6 +235,15 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 .duck-progress-face svg{display:block;width:100%;height:100%}
 @media(prefers-reduced-motion:reduce){.duck-progress-face{transition:none}}
 
+/* Mobile dashboard should size to its content, not obsolete fixed heights. */
+@media(max-width:700px){
+ .dashboard{min-height:0;height:auto}
+}
+@media(max-width:600px){
+ .dashboard .shift-progress-panel{margin-top:9px}
+ .dashboard .triples{margin-top:8px}
+}
+
 /* Today Earned secondary information: one calm time/progress section and 3 uniform metric cards. */
 .dashboard .shift-progress-panel{
  margin-top:20px;padding:17px 18px 18px;border:1px solid #d6e6ed;
