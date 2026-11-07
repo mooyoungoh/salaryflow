@@ -237,6 +237,32 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 
 /* Dedicated original SVG artworks: never stretch or rotate one image to fake multiple poses. */
 .duck-art{object-fit:contain;object-position:center;user-select:none}
+
+/* Job editor: consistent label baselines and control dimensions across rows. */
+.job .form,.job .overtime-grid{align-items:start;min-width:0}
+.job .form > .field,.job .overtime-grid > .field{min-width:0;width:100%}
+.job .form > .field > label,.job .overtime-grid > .field > label{
+ display:flex;align-items:flex-end;min-height:2.9em;line-height:1.45;margin-bottom:7px;
+ overflow-wrap:break-word
+}
+.job .field > input:not([type="checkbox"]),.job .field > select,.job .field .inputeye > input{
+ display:block;width:100%;max-width:100%;min-width:0;height:44px;min-height:44px;
+ box-sizing:border-box;line-height:normal
+}
+.job .field .inputeye{width:100%;min-width:0}
+.job .field .inputeye > input{padding-right:48px}
+.job .inputeye .privacy{top:50%;transform:translateY(-50%);right:5px}
+@media(max-width:700px){
+ .job .form{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:600px){
+ .job{padding:14px}
+ .job .form,.job .overtime-grid{grid-template-columns:minmax(0,1fr)}
+ .job .field.wide{grid-column:auto}
+ .job .form > .field > label,.job .overtime-grid > .field > label{min-height:0}
+ .job .field > input:not([type="checkbox"]),.job .field > select,.job .field .inputeye > input{font-size:16px}
+}
+
 </style>
 </head>
 <body><main class="wrap">
