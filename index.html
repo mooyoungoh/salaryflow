@@ -226,6 +226,14 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
  .duck-caption{font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){.dashboard{transition:none}}
+/* The duck face rides the live fill endpoint; the bar stays unclipped and readable. */
+.dashboard .bar{position:relative;overflow:visible}
+.dashboard .bar>div{border-radius:30px}
+.duck-progress-face{position:absolute;z-index:2;top:50%;left:clamp(13px,var(--duck-progress-position,0%),calc(100% - 13px));width:26px;height:26px;transform:translate(-50%,-50%);pointer-events:none;opacity:0;transition:left .2s linear,opacity .15s ease;filter:drop-shadow(0 2px 3px #0005)}
+.duck-progress-face.is-visible{opacity:1}
+.duck-progress-face svg{display:block;width:100%;height:100%}
+@media(prefers-reduced-motion:reduce){.duck-progress-face{transition:none}}
+
 </style>
 </head>
 <body><main class="wrap">
@@ -259,7 +267,7 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 <path d="M58 117q8-8 17-1 9 9-1 13-11 2-16-7" fill="#afb6d2" opacity=".8"/>
 <path d="M145 129h15l-1 17h-14Z" fill="#fff7e9" stroke="#43364c" stroke-width="2.5"/><path d="M160 132q9 0 5 11l-5 1" fill="none" stroke="#fff7e9" stroke-width="3"/><path d="M149 138q4-5 7 0-2 5-7 0" fill="#f3b33b"/>
 <path class="duck-z" d="M25 49h11L25 60h11m-4-31h8l-8 8h8" stroke="#d8ccff" stroke-width="3" stroke-linecap="round" fill="none"/>
-</svg><span class="duck-caption" id="duckCaption">아직 시작 전</span></div></div><div class="bar"><div id="progress"></div></div><div class="spread fine"><div class="work-tracking"><div id="worked" class="worked-breakdown" aria-label="오늘 직장별 근무시간">오늘 0시간 근무</div><div id="endCountdown" class="end-countdown" aria-live="off"></div></div><span id="percent">0%</span></div><div class="triples"><div class="mini"><div class="fine">오늘 하루 예상 총수입</div><div class="moneyline"><strong data-money="target">$0.00</strong><button class="privacy" data-hide="target"></button></div></div><div class="mini"><div class="fine">오늘 남은 수입</div><div class="moneyline"><strong data-money="remaining">$0.00</strong><button class="privacy" data-hide="remaining"></button></div></div><div class="mini"><div class="fine">현재 근무 중 수입 속도</div><div class="moneyline"><strong data-money="rate">$0.0000/s</strong><button class="privacy" data-hide="rate"></button></div></div></div></section>
+</svg><span class="duck-caption" id="duckCaption">아직 시작 전</span></div></div><div class="bar" id="workProgressBar"><div id="progress"></div><span class="duck-progress-face" id="duckProgressFace" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M6 15C6 7 12 4 18 5c-2-4 4-4 5 2 4 2 5 5 5 10 0 8-6 12-13 12S5 24 6 15Z" fill="#fff2d5" stroke="#463342" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 15q2-3 4 0m7 0q2-3 4 0" fill="none" stroke="#322a39" stroke-width="2.1" stroke-linecap="round"/><ellipse cx="9" cy="19" rx="2.7" ry="1.8" fill="#f7b5a4" opacity=".65"/><ellipse cx="25" cy="19" rx="2.7" ry="1.8" fill="#f7b5a4" opacity=".65"/><path d="M13 19q3-3 6 0 5 0 5 3-3 4-7 4-6 0-7-4 0-3 3-3Z" fill="#f9aa2a" stroke="#d8871a" stroke-width="1.6"/></svg></span></div><div class="spread fine"><div class="work-tracking"><div id="worked" class="worked-breakdown" aria-label="오늘 직장별 근무시간">오늘 0시간 근무</div><div id="endCountdown" class="end-countdown" aria-live="off"></div></div><span id="percent">0%</span></div><div class="triples"><div class="mini"><div class="fine">오늘 하루 예상 총수입</div><div class="moneyline"><strong data-money="target">$0.00</strong><button class="privacy" data-hide="target"></button></div></div><div class="mini"><div class="fine">오늘 남은 수입</div><div class="moneyline"><strong data-money="remaining">$0.00</strong><button class="privacy" data-hide="remaining"></button></div></div><div class="mini"><div class="fine">현재 근무 중 수입 속도</div><div class="moneyline"><strong data-money="rate">$0.0000/s</strong><button class="privacy" data-hide="rate"></button></div></div></div></section>
 <section class="total"><div class="mini-label">TOTAL · 입사 이후 누적 수입 (추정)</div><div class="moneyline"><div class="amount" data-money="lifetime">$0.00</div><button class="privacy" data-hide="lifetime"></button></div><div class="fine" id="careerExplain">각 직장의 입사일과 현재 연봉을 기준으로 추정</div></section>
 <div class="stats"><div class="stat"><div class="fine">이번 주 수입</div><div class="moneyline"><div class="amount" data-money="week">$0.00</div><button class="privacy" data-hide="week"></button></div></div><div class="stat"><div class="fine">이번 달 수입</div><div class="moneyline"><div class="amount" data-money="month">$0.00</div><button class="privacy" data-hide="month"></button></div></div><div class="stat"><div class="fine">올해 수입</div><div class="moneyline"><div class="amount" data-money="year">$0.00</div><button class="privacy" data-hide="year"></button></div></div><div class="stat"><div class="fine">하루 수입 (오늘)</div><div class="moneyline"><div class="amount" data-money="day">$0.00</div><button class="privacy" data-hide="day"></button></div></div></div>
 <details class="rank-section" id="incomeRankSection" aria-label="Income percentile estimates">
@@ -1358,7 +1366,7 @@ function render(){
   updateText('#careerExplain',config.mode==='gross'?tr('과거 연도는 연봉·인상률 추정, 올해는 실제 근무 스케줄에 맞춰 누적','Past years estimated from salary and raises; current year follows work schedules'):tr('과거 소득은 추정, 올해는 현재 세후 시급과 근무 일정으로 누적 · 과거 세법 미반영','Historical income estimated; this year accumulates using current net hourly rate and work schedules'));
   lastStatusSecond=second;
  }
- const progressWidth=(snapshot.target>0?Math.min(100,Math.max(0,100*earned/snapshot.target)):0)+'%';if($('#progress').style.width!==progressWidth)$('#progress').style.width=progressWidth;
+ const progressWidth=(snapshot.target>0?Math.min(100,Math.max(0,100*earned/snapshot.target)):0)+'%';if($('#progress').style.width!==progressWidth)$('#progress').style.width=progressWidth;const progressBar=$('#workProgressBar');if(progressBar.style.getPropertyValue('--duck-progress-position')!==progressWidth)progressBar.style.setProperty('--duck-progress-position',progressWidth);const duckMarker=$('#duckProgressFace');duckMarker.classList.toggle('is-visible',Number.parseFloat(progressWidth)>0);
  const pulse=$('#pulse');if(pulse.classList.contains('off')===working)pulse.classList.toggle('off',!working);
  if(rebuilt||staticChanged)applyPrivacy();
 }
