@@ -22,7 +22,7 @@ let svgWrites=0;
 const makeEl=()=>({
  dataset:{raw:'$100'},
  classList:{_s:new Set(),toggle(c,on){(on??!this._s.has(c))?this._s.add(c):this._s.delete(c)},contains(c){return this._s.has(c)}},
- setAttribute(){},
+ _attrs:{},setAttribute(k,v){this._attrs[k]=String(v)},getAttribute(k){return k in this._attrs?this._attrs[k]:null},
  get textContent(){return this._text||''},
  set textContent(v){this._text=v},
  get innerHTML(){return this._html||''},
@@ -38,7 +38,8 @@ const hidden=new Set();
 const context={hidden,moneyKeys:['today','target','remaining','rate','lifetime','week','year','day'],
  $:query=>elems.get(query),eyeOn:'eye-visible',eyeOff:'eye-concealed',tr:a=>a};
 vm.createContext(context);
-vm.runInContext(privacyCode+';globalThis.update=applyPrivacy;',context);
+const helpers=['updateText','updateHtml'].map(name=>{const i=html.indexOf('function '+name+'(');assert(i>=0,'Missing helper '+name);return html.slice(i,html.indexOf('\n',i));}).join('\n');
+vm.runInContext(helpers+'\n'+privacyCode+';globalThis.update=applyPrivacy;',context);
 context.update();
 const initial=svgWrites;
 for(let i=0;i<10;i++)context.update();
