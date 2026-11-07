@@ -21,7 +21,7 @@ const elems=new Map();
 let svgWrites=0;
 const makeEl=()=>({
  dataset:{raw:'$100'},
- classList:{toggle(){}},
+ classList:{_s:new Set(),toggle(c,on){(on??!this._s.has(c))?this._s.add(c):this._s.delete(c)},contains(c){return this._s.has(c)}},
  setAttribute(){},
  get textContent(){return this._text||''},
  set textContent(v){this._text=v},
