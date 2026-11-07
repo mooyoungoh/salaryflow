@@ -180,26 +180,26 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 .job-head .job-chevron,.worked-separator,.end-countdown .end-separator{color:#566d7c}
 .ad-caption,.rank-eyebrow{color:#586d7e}
 
-/* Salary Flow Duck: stateful vector artwork is preallocated to avoid layout shifts. */
-.dashboard{position:relative;overflow:hidden;isolation:isolate;background:linear-gradient(135deg,#282d63 0%,#51538d 52%,#aa6588 100%);border-color:#55568c;transition:background-color .35s ease,border-color .35s ease}
-.dashboard::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 79% 82%,#f5a1744a,transparent 58%),linear-gradient(to top,#201e5070,transparent 40%)}
-.dashboard[data-duck-theme="before"]{background:linear-gradient(140deg,#242653,#423e81 72%,#684a83)}
-.dashboard[data-duck-theme="start"]{background:linear-gradient(135deg,#344b83,#727bb5 65%,#c98a91)}
-.dashboard[data-duck-theme="focus"]{background:linear-gradient(135deg,#1c527a,#426dad 65%,#6886c7)}
-.dashboard[data-duck-theme="steady"]{background:linear-gradient(135deg,#343876,#646fbc 64%,#a37cae)}
-.dashboard[data-duck-theme="almost"]{background:linear-gradient(135deg,#38366e,#815888 58%,#c77d73)}
-.dashboard[data-duck-theme="done"]{background:linear-gradient(135deg,#242c60,#47417d 68%,#784a88)}
-.dashboard[data-duck-theme="overtime"]{background:linear-gradient(135deg,#282443,#474064 70%,#66506c)}
-.dashboard[data-duck-theme="break"]{background:linear-gradient(135deg,#284b70,#456b91 70%,#5487a0)}
-.dashboard[data-duck-theme="off"]{background:linear-gradient(135deg,#203950,#365478 64%,#52749a)}
+/* Salary Flow Duck: low-saturation, cohesive night palette and stable mascot artwork. */
+.dashboard{position:relative;overflow:hidden;isolation:isolate;background:linear-gradient(135deg,#252d48 0%,#303a58 65%,#41435e 100%);border-color:#414c65;transition:background-color .35s ease,border-color .35s ease}
+.dashboard::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 84% 90%,#bd98731b,transparent 60%)}
+.dashboard[data-duck-theme="before"]{background:linear-gradient(135deg,#232b44,#343650)}
+.dashboard[data-duck-theme="start"]{background:linear-gradient(135deg,#29344e,#38445f)}
+.dashboard[data-duck-theme="focus"]{background:linear-gradient(135deg,#27364e,#34445c)}
+.dashboard[data-duck-theme="steady"]{background:linear-gradient(135deg,#2d344e,#40445f)}
+.dashboard[data-duck-theme="almost"]{background:linear-gradient(135deg,#33334d,#4c435a)}
+.dashboard[data-duck-theme="done"]{background:linear-gradient(135deg,#252d45,#393850)}
+.dashboard[data-duck-theme="overtime"]{background:linear-gradient(135deg,#2d2e41,#40394d)}
+.dashboard[data-duck-theme="break"]{background:linear-gradient(135deg,#293a50,#3c4c60)}
+.dashboard[data-duck-theme="off"]{background:linear-gradient(135deg,#273448,#3a4257)}
 .duck-hero{display:grid;grid-template-columns:minmax(0,1fr) 168px;gap:12px;align-items:center;min-width:0}
 .duck-income{min-width:0}
-.duck-income .huge{font-size:clamp(39px,7vw,79px);color:#f1fff7}
+.duck-income .huge{font-size:clamp(39px,7vw,79px);color:#f5faf9}
 .duck-income .primary-label{margin-top:18px}
-.duck-income .fine{color:#e5e9fa}
+.duck-income .fine{color:#dce5ed}
 .duck-scene{width:168px;min-width:0;align-self:end;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
 .duck-art{display:block;width:168px;height:154px;max-width:100%;overflow:visible}
-.duck-caption{display:block;font-size:11px;line-height:1.3;font-weight:800;color:#fcf1dc;margin:0 0 2px}
+.duck-caption{display:block;font-size:11px;line-height:1.3;font-weight:800;color:#f4e6cd;margin:0 0 2px}
 .duck-face,.duck-spark,.duck-z{display:none}
 [data-duck-state="before"] .duck-face--sleep,[data-duck-state="done"] .duck-face--sleep,[data-duck-state="off"] .duck-face--sleep{display:block}
 [data-duck-state="start"] .duck-face--smile,[data-duck-state="steady"] .duck-face--smile,[data-duck-state="break"] .duck-face--smile{display:block}
@@ -207,9 +207,9 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 [data-duck-state="almost"] .duck-face--excited,[data-duck-state="almost"] .duck-spark{display:block}
 [data-duck-state="overtime"] .duck-face--tired{display:block}
 [data-duck-state="before"] .duck-z,[data-duck-state="done"] .duck-z,[data-duck-state="off"] .duck-z{display:block}
-.dashboard .eyeline,.dashboard .clock{color:#e1e8fc}
+.dashboard .eyeline,.dashboard .clock{color:#e1e8f2}
 .dashboard .bar{background:#ffffff24}
-.dashboard .fine{color:#d5def1}
+.dashboard .fine{color:#d5deeb}
 @media(max-width:600px){
  .duck-hero{grid-template-columns:minmax(0,1fr) 105px;gap:5px}
  .duck-scene{width:105px}
@@ -226,7 +226,6 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
  .duck-caption{font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){.dashboard{transition:none}}
-
 </style>
 </head>
 <body><main class="wrap">
@@ -234,27 +233,29 @@ body{background:linear-gradient(160deg,#f1f7fa 0%,#f8fafc 52%,#edf5f4 100%);colo
 <div id="fxStatus" class="fx-status" aria-live="polite">기준 통화: USD · 세금 및 급여 입력은 USD</div><h1>오늘도, 돈은 쌓이는 중.</h1><p class="sub">오늘 번 돈을 실시간으로 확인하세요. 세전·실수령액을 전환하고 여러 직장을 합산할 수 있습니다.</p>
 <div class="mode" role="group" aria-label="표시할 수입 기준"><button id="grossBtn" type="button" aria-pressed="true">Gross · 세전</button><button id="netBtn" type="button" aria-pressed="false">Net · 실수령</button></div>
 <section class="dashboard" id="dashboardDuck" data-duck-theme="before" aria-label="오늘 번 돈"><div class="eyeline"><span class="pulse" id="pulse"></span><span id="workStatus">근무 일정 계산 중</span><span class="clock" id="clock"></span></div><div class="duck-hero"><div class="duck-income"><div class="primary-label">TODAY EARNED · 오늘 번 돈</div><div class="moneyline"><div class="amount huge" id="todayMoney" data-money="today">$0.0000</div><button class="privacy" data-hide="today" title="오늘 수입 숨기기"></button></div><div class="fine" id="todayDescription">오늘 근무 시간에 따라 누적된 금액</div></div><div class="duck-scene" id="duckScene" data-duck-state="before" role="img" aria-label="근무 시작 전 오리"><svg class="duck-art" viewBox="0 0 172 154" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
-<defs><linearGradient id="duckBody" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#fff4db"/><stop offset="1" stop-color="#ffc776"/></linearGradient><linearGradient id="duckLaptop" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#65639a"/><stop offset="1" stop-color="#3c3b69"/></linearGradient></defs>
-<path class="duck-spark" d="M19 29l-6-10m19 5-2-12m-13 28-11-2" stroke="#ffce70" stroke-width="5" stroke-linecap="round"/>
-<ellipse cx="106" cy="99" rx="48" ry="41" fill="#ffc779" stroke="#6d4250" stroke-width="3"/>
-<path d="M64 66C58 37 75 21 103 23c9-11 16-13 20-5l-1 11c29 12 35 34 27 63-5 21-23 34-47 34-33 0-49-24-38-60Z" fill="url(#duckBody)" stroke="#6d4250" stroke-width="3.8" stroke-linejoin="round"/>
-<path d="M72 51Q100 8 132 48" fill="none" stroke="#3b375d" stroke-width="9" stroke-linecap="round"/>
-<path d="M72 50Q100 13 132 48" fill="none" stroke="#8078a5" stroke-width="3" stroke-linecap="round"/>
-<rect x="61" y="57" width="17" height="34" rx="8" transform="rotate(-8 61 57)" fill="#575276" stroke="#393351" stroke-width="3"/>
-<rect x="137" y="55" width="17" height="35" rx="9" transform="rotate(8 137 55)" fill="#575276" stroke="#393351" stroke-width="3"/>
-<ellipse cx="76" cy="87" rx="9" ry="6" fill="#ffa5a0" opacity=".63"/><ellipse cx="140" cy="87" rx="8" ry="6" fill="#ffa5a0" opacity=".63"/>
-<g class="duck-face duck-face--sleep"><path d="M80 76q8 7 16-1m26 0q8 7 16-1" fill="none" stroke="#50334a" stroke-width="3.8" stroke-linecap="round"/><path d="M107 102q5 4 10 0" fill="none" stroke="#50334a" stroke-width="2.6" stroke-linecap="round"/></g>
-<g class="duck-face duck-face--focus"><path d="M78 69l16 6m29 0 16-6" stroke="#50334a" stroke-width="3.4" stroke-linecap="round"/><ellipse cx="86" cy="80" rx="3" ry="5" fill="#50334a"/><ellipse cx="129" cy="80" rx="3" ry="5" fill="#50334a"/></g>
-<g class="duck-face duck-face--smile"><path d="M79 79q7-12 15 0m29 0q7-12 15 0" fill="none" stroke="#50334a" stroke-width="4.1" stroke-linecap="round"/></g>
-<g class="duck-face duck-face--excited"><path d="M78 71l17 13-16 1m59-14-17 13 16 1" stroke="#50334a" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
-<g class="duck-face duck-face--tired"><path d="M79 78q8 6 16-2m27 2q8 6 16-2" stroke="#50334a" stroke-width="3.6" fill="none" stroke-linecap="round"/><path d="M141 56q16 17 5 21-12 0-5-21" fill="#91dcff" stroke="#4a9bc1" stroke-width="2"/></g>
-<path d="M98 87q9-9 18 0 12 0 12 8-5 8-18 8-16-2-19-8 0-7 7-8Z" fill="#ffad28" stroke="#df8221" stroke-width="2.5"/><path d="M96 95q14 9 27 0" stroke="#f9d163" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-<path d="M130 119q17-7 20 10-7 17-19 7" fill="#ffdf9c" stroke="#6d4250" stroke-width="3"/>
-<path d="M12 102h89l16 35H27Z" fill="url(#duckLaptop)" stroke="#393351" stroke-width="4" stroke-linejoin="round"/><path d="M12 139h112" stroke="#393351" stroke-width="7" stroke-linecap="round"/>
-<path d="M62 115q9-7 15 3 6 7-4 11-12 1-14-9" fill="#aaa8d3" opacity=".8"/>
-<path d="M142 132h18l-2 14h-15Z" fill="#faf1e8" stroke="#635176" stroke-width="2.5"/><path d="M160 135q10 0 5 8l-6 1" fill="none" stroke="#faf1e8" stroke-width="3"/>
-<path class="duck-steam" d="M149 126q-5-5 0-9m8 9q-5-5 0-9" fill="none" stroke="#f7d8e1" stroke-width="2" stroke-linecap="round"/>
-<path class="duck-z" d="M15 48h12l-12 11h12" stroke="#d7d0ff" stroke-width="3" stroke-linecap="round" fill="none"/><path class="duck-z" d="M25 29h9l-9 8h9" stroke="#d7d0ff" stroke-width="2" stroke-linecap="round" fill="none"/>
+<defs><linearGradient id="duckBody" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#fff5db"/><stop offset="1" stop-color="#f7cd8a"/></linearGradient><linearGradient id="duckLaptop" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#68728f"/><stop offset="1" stop-color="#424d6c"/></linearGradient></defs>
+<path class="duck-spark" d="M20 28l-6-9m18 3-2-11m-14 29-10-2" stroke="#f7d38b" stroke-width="4" stroke-linecap="round"/>
+<!-- A single rounded body/head silhouette with headphones aligned to its edge. -->
+<ellipse cx="105" cy="105" rx="46" ry="35" fill="#f4c57f" stroke="#87664f" stroke-width="3"/>
+<path d="M63 79C61 46 78 28 108 28s46 18 46 50c0 28-18 48-46 48S63 108 63 79Z" fill="url(#duckBody)" stroke="#87664f" stroke-width="3.5"/>
+<path d="M71 64C72 18 141 18 145 64" fill="none" stroke="#333f5a" stroke-width="10" stroke-linecap="round"/>
+<path d="M71 64C72 18 141 18 145 64" fill="none" stroke="#8391a8" stroke-width="3.3" stroke-linecap="round"/>
+<rect x="61" y="66" width="17" height="31" rx="8.5" fill="#505c75" stroke="#313d58" stroke-width="3"/>
+<rect x="137" y="66" width="17" height="31" rx="8.5" fill="#505c75" stroke="#313d58" stroke-width="3"/>
+<ellipse cx="80" cy="91" rx="8" ry="5" fill="#ed9e91" opacity=".45"/><ellipse cx="133" cy="91" rx="8" ry="5" fill="#ed9e91" opacity=".45"/>
+<g class="duck-face duck-face--sleep"><path d="M81 79q7 7 14 0m25 0q7 7 14 0" fill="none" stroke="#55453e" stroke-width="3.5" stroke-linecap="round"/></g>
+<g class="duck-face duck-face--focus"><path d="M80 73l15 6m25 0 15-6" stroke="#55453e" stroke-width="3" stroke-linecap="round"/><ellipse cx="87" cy="84" rx="3" ry="4.5" fill="#55453e"/><ellipse cx="128" cy="84" rx="3" ry="4.5" fill="#55453e"/></g>
+<g class="duck-face duck-face--smile"><path d="M81 83q7-10 14 0m25 0q7-10 14 0" fill="none" stroke="#55453e" stroke-width="3.8" stroke-linecap="round"/></g>
+<g class="duck-face duck-face--excited"><path d="M80 75l14 11-14 1m54-12-14 11 14 1" stroke="#55453e" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+<g class="duck-face duck-face--tired"><path d="M81 82q7 5 14-1m25 1q7 5 14-1" stroke="#55453e" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M146 93q10 13 0 16-10-3 0-16" fill="#9ed3ee" stroke="#6eaccd" stroke-width="1.6"/></g>
+<path d="M98 91q10-8 19 0 9 0 9 7-4 9-17 9-13 0-18-9 0-7 7-7Z" fill="#f3a842" stroke="#d48739" stroke-width="2.3"/>
+<path d="M129 119q15-4 18 11-7 11-17 7" fill="#f7d795" stroke="#87664f" stroke-width="2.7"/>
+<!-- Laptop covers the lower body, without clipping the expression or headphone cups. -->
+<path d="M15 104h85l16 34H29Z" fill="url(#duckLaptop)" stroke="#37425c" stroke-width="3.5" stroke-linejoin="round"/>
+<path d="M15 140h108" stroke="#37425c" stroke-width="6" stroke-linecap="round"/>
+<path d="M63 116q8-5 13 3 3 5-5 9-10 0-11-7" fill="#a5b0c8" opacity=".75"/>
+<path d="M146 131h15l-2 15h-13Z" fill="#ede6dd" stroke="#697088" stroke-width="2"/><path d="M161 135q7 0 4 7l-5 1" fill="none" stroke="#ede6dd" stroke-width="2.5"/>
+<path class="duck-z" d="M21 47h11L21 58h11m-5-28h8l-8 8h8" stroke="#d4d5e9" stroke-width="2.5" stroke-linecap="round" fill="none"/>
 </svg><span class="duck-caption" id="duckCaption">아직 시작 전</span></div></div><div class="bar"><div id="progress"></div></div><div class="spread fine"><div class="work-tracking"><div id="worked" class="worked-breakdown" aria-label="오늘 직장별 근무시간">오늘 0시간 근무</div><div id="endCountdown" class="end-countdown" aria-live="off"></div></div><span id="percent">0%</span></div><div class="triples"><div class="mini"><div class="fine">오늘 하루 예상 총수입</div><div class="moneyline"><strong data-money="target">$0.00</strong><button class="privacy" data-hide="target"></button></div></div><div class="mini"><div class="fine">오늘 남은 수입</div><div class="moneyline"><strong data-money="remaining">$0.00</strong><button class="privacy" data-hide="remaining"></button></div></div><div class="mini"><div class="fine">현재 근무 중 수입 속도</div><div class="moneyline"><strong data-money="rate">$0.0000/s</strong><button class="privacy" data-hide="rate"></button></div></div></div></section>
 <section class="total"><div class="mini-label">TOTAL · 입사 이후 누적 수입 (추정)</div><div class="moneyline"><div class="amount" data-money="lifetime">$0.00</div><button class="privacy" data-hide="lifetime"></button></div><div class="fine" id="careerExplain">각 직장의 입사일과 현재 연봉을 기준으로 추정</div></section>
 <div class="stats"><div class="stat"><div class="fine">이번 주 수입</div><div class="moneyline"><div class="amount" data-money="week">$0.00</div><button class="privacy" data-hide="week"></button></div></div><div class="stat"><div class="fine">이번 달 수입</div><div class="moneyline"><div class="amount" data-money="month">$0.00</div><button class="privacy" data-hide="month"></button></div></div><div class="stat"><div class="fine">올해 수입</div><div class="moneyline"><div class="amount" data-money="year">$0.00</div><button class="privacy" data-hide="year"></button></div></div><div class="stat"><div class="fine">하루 수입 (오늘)</div><div class="moneyline"><div class="amount" data-money="day">$0.00</div><button class="privacy" data-hide="day"></button></div></div></div>
