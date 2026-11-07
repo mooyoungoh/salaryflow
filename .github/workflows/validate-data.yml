@@ -32,6 +32,7 @@ jobs:
           node scripts/test-earnings-performance.mjs
           node scripts/test-client-performance.mjs
           node scripts/test-mobile-lighthouse.mjs
+          node scripts/test-shift-duck.mjs
           node scripts/test-today-overtime.mjs
           node scripts/test-recurring-overtime.mjs
           node scripts/test-overtime-layout.mjs
