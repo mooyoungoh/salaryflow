@@ -14,6 +14,8 @@ const estimateStart=html.indexOf('function taxEstimate(){');
 const estimateEnd=html.indexOf('\nfunction displayTax()',estimateStart);
 assert(estimateStart>0&&estimateEnd>estimateStart,'Actual tax estimator source unavailable');
 const estimate=html.slice(estimateStart,estimateEnd);
+const k401Block=html.slice(html.indexOf('// 2026 elective deferral limit'),html.indexOf('// No Tax on Overtime'));
+assert(k401Block.includes('function pretax401Annual('),'401(k) projection helper missing');
 assert(estimate.includes('ARIZONA_RULES.rate'),'Arizona calculator must use official state tax rate');
 assert(!estimate.includes('Math.min(184500'),'Federal payroll cap should not be hardcoded');
 const ctx={
@@ -25,7 +27,8 @@ const ctx={
  progressive:(amount,limits)=>{let total=0,prev=0;for(let i=0;i<7;i++){const rates=[.10,.12,.22,.24,.32,.35,.37];const upper=limits[i]??Infinity;total+=Math.max(0,Math.min(amount,upper)-prev)*rates[i];prev=upper;if(amount<=upper)break}return total}
 };
 vm.createContext(ctx);
-vm.runInContext(deductionHelper+estimate+';globalThis.calc=taxEstimate;globalThis.azDefault=standardArizonaDeduction;',ctx);
+ctx.REFERENCE_DATA={years:{tax:2026}};ctx.annualBonus=j=>Number(j.gross||0)*Number(j.aipPercent||0)/100+Number(j.extraBonus||0);
+vm.runInContext(deductionHelper+k401Block+estimate+';globalThis.calc=taxEstimate;globalThis.azDefault=standardArizonaDeduction;globalThis.k401=pretax401Annual;',ctx);
 for(const [status,ded] of Object.entries(az.standardDeduction))assert.equal(ctx.azDefault(status),ded,status+' standard deduction');
 let out=ctx.calc();
 assert(Math.abs(out.az-(100000-15750)*.025)<1e-8,'Single 100k Arizona tax');
@@ -53,5 +56,18 @@ for(const [name,oldDed,custom,expected] of [
  vm.createContext(ctx2);
  vm.runInContext(deductionHelper+configBlock+';globalThis.savedConfig=config;',ctx2);
  assert.equal(ctx2.savedConfig.azDeduction,expected,name);
+}
+// 401(k): percent elections follow salary/bonus, are capped per employer, and reduce taxable wages.
+{
+ const j={gross:100000,aipPercent:10,extraBonus:0,pretax401:5000,k401Mode:'amount'};
+ assert.equal(ctx.k401(j),5000,'Amount mode keeps the annual dollar input');
+ Object.assign(j,{k401Mode:'percent',k401Percent:6,k401Bonus:true});
+ assert(Math.abs(ctx.k401(j)-6600)<1e-9,'6% of salary plus bonus');
+ j.k401Bonus=false;assert(Math.abs(ctx.k401(j)-6000)<1e-9,'Bonus excluded when unchecked');
+ j.k401Percent=50;assert.equal(ctx.k401(j),24500,'Per-employer payroll stops at the 2026 limit');
+ j.k401Percent=6;j.k401Ytd=24000;assert(ctx.k401(j)<=24500&&ctx.k401(j)>=24000,'YTD anchors the projection');
+ ctx.config={...ctx.config,taxState:'AZ',filing:'single',azDeduction:15750,jobs:[{gross:100000,aipPercent:0,extraBonus:0,k401Mode:'percent',k401Percent:10,k401Bonus:true}]};
+ const out401=ctx.calc();assert(Math.abs(out401.pretax-10000)<1e-9,'Tax estimate uses projected 401(k)');
+ assert(Math.abs(out401.az-(100000-10000-15750)*.025)<1e-8,'401(k) lowers Arizona taxable wages');
 }
 console.log('PASS: Arizona enacted 2026 standard deductions, tax estimates, zero-wage states, and saved override migration');

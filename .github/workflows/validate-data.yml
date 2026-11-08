@@ -47,6 +47,9 @@ jobs:
           node scripts/test-earnings-grid.mjs
           node scripts/test-dynamic-reference-years.mjs
           node scripts/test-reference-audit-ui.mjs
+          node scripts/test-arizona-tax.mjs
+          node scripts/test-privacy-controls.mjs
+          node scripts/test-payday-overtime.mjs
       - name: Verify update pipeline parsers and atomic rollover
         run: |
           node scripts/test-activate-tax-year.mjs
