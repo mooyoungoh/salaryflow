@@ -31,9 +31,22 @@ check(bi, new Date(2026, 10, 14, 9), '2026-11-13', '2026-11-27', 'biweekly after
 check({...bi, payAnchor: '2027-03-05'}, new Date(2026, 10, 8), '2026-10-30', '2026-11-13', 'future anchor');
 // Without an anchor: first Friday on/after hire date.
 check({frequency: 'weekly', payAnchor: '', hireDate: '2026-11-02'}, new Date(2026, 10, 8), '2026-11-06', '2026-11-13', 'weekly default');
-// Semimonthly: 15th and month end, weekend moves back to Friday (2026-11-15 is a Sunday).
+// Semimonthly default: 15th and month end; 2026-11-15 is a Sunday -> Friday 11/13.
 check({frequency: 'semimonthly'}, new Date(2026, 10, 8), '2026-10-30', '2026-11-13', 'semimonthly weekend 15th');
 check({frequency: 'semimonthly'}, new Date(2026, 10, 14), '2026-11-13', '2026-11-30', 'semimonthly month end');
+// Custom days 5 and 20: 2026-12-05 is a Saturday -> Friday 12/04.
+const j1 = {frequency: 'semimonthly', payDays: [5, 20]};
+check(j1, new Date(2026, 10, 8), '2026-11-05', '2026-11-20', 'semimonthly 5/20');
+check(j1, new Date(2026, 10, 21), '2026-11-20', '2026-12-04', 'semimonthly 5/20 Saturday');
+// Bank holidays move back to the previous business day.
+check({frequency: 'semimonthly', payDays: [11, 26]}, new Date(2026, 10, 2), '2026-10-26', '2026-11-10', 'Veterans Day (Wed 11/11)');
+check({frequency: 'semimonthly', payDays: [11, 26]}, new Date(2026, 10, 12), '2026-11-10', '2026-11-25', 'Thanksgiving (Thu 11/26)');
+check({frequency: 'monthly', payDays: [1]}, new Date(2026, 11, 20), '2026-12-01', '2026-12-31', 'New Year (Fri 1/1/2027) -> 12/31');
+check({frequency: 'monthly', payDays: [5]}, new Date(2027, 6, 1), '2027-06-04', '2027-07-02', 'July 4 observed Mon 7/5/2027 -> Fri 7/2');
+// Saturday holiday is not observed by the Fed: 2027-12-25 is Saturday -> weekend rule -> Friday 12/24.
+check({frequency: 'monthly', payDays: [25]}, new Date(2027, 11, 1), '2027-11-24', '2027-12-24', 'Christmas on Saturday (11/25 is Thanksgiving)');
+// A biweekly Friday payday that is a holiday moves to Thursday (2026-12-25 Fri).
+check({frequency: 'biweekly', payAnchor: '2026-12-11'}, new Date(2026, 11, 20), '2026-12-11', '2026-12-24', 'biweekly holiday Friday');
 // Monthly: default month end (2026-10-31 is a Saturday), or the reference day clamped to short months.
 check({frequency: 'monthly', payAnchor: ''}, new Date(2026, 10, 8), '2026-10-30', '2026-11-30', 'monthly default');
 check({frequency: 'monthly', payAnchor: '2026-01-31'}, new Date(2027, 1, 10), '2027-01-29', '2027-02-26', 'monthly clamp to Feb');
