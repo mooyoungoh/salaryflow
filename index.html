@@ -1718,12 +1718,11 @@ function renderShiftSplit(snapshot,ts,dayS){
   const html=tr(ko,en)+' <b>'+fmt(earned)+'</b> / '+fmt(target);if(el.innerHTML!==html)el.innerHTML=html;
   el.classList.toggle('is-done',done);el.classList.toggle('is-active',!done&&isActive)};
  const inMorning=split.morningEarned<split.morningTarget-0.005;
- part('#shiftMorning','오전','Morning',split.morningEarned,split.morningTarget,split.active&&inMorning);
- const lunchEnd=lunchBreakStatus(snapshot,ts,dayS);
- if(lunchEnd){
-  const morning=$('#shiftMorning');
-  if(morning){morning.textContent=lunchBreakMessage(lunchEnd);morning.classList.remove('is-active');}
- }
+ // During an unpaid lunch (all jobs on break) the morning slot explains when work resumes.
+ // Write it once instead of rendering the amount and overwriting it on every tick.
+ const lunchEnd=lunchBreakStatus(snapshot,ts,dayS),morning=$('#shiftMorning');
+ if(lunchEnd&&morning){updateText('#shiftMorning',lunchBreakMessage(lunchEnd));morning.classList.remove('is-active','is-done');}
+ else part('#shiftMorning','오전','Morning',split.morningEarned,split.morningTarget,split.active&&inMorning);
  part('#shiftAfternoon','오후','Afternoon',split.afternoonEarned,split.afternoonTarget,split.active&&!inMorning);
 }
 // ---------- Live chart ----------
