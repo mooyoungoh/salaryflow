@@ -412,6 +412,8 @@ body{background:linear-gradient(160deg,#eaf2f6 0%,#f0f5f8 52%,#e7f1ef 100%);colo
 .live-chart-head b{color:#16735a}
 .live-chart-tag{display:inline-flex;align-items:center;gap:6px;font-weight:800;color:#28465a;letter-spacing:.02em}
 .live-chart-tag::before{content:"";width:7px;height:7px;border-radius:50%;background:#18a57e;box-shadow:0 0 0 3px #d5f3e8;animation:live-dot 1.6s ease-in-out infinite}
+.live-chart.is-flash #liveChartRate{color:#fff;background:#16846e;border-radius:999px;padding:2px 9px;font-weight:800;transition:background .2s}
+#liveChartRate{padding:2px 0;font-weight:700;color:#16735a}
 .live-chart.is-idle .live-chart-tag::before{background:#9db3c1;box-shadow:0 0 0 3px #e7eef2;animation:none}
 @keyframes live-dot{50%{box-shadow:0 0 0 6px #d5f3e800}}
 .live-chart canvas{display:block;width:100%}
@@ -425,7 +427,7 @@ body{background:linear-gradient(160deg,#eaf2f6 0%,#f0f5f8 52%,#e7f1ef 100%);colo
 <div class="top"><div class="brand">SALARY FLOW</div><div class="top-controls"><div class="currency-control"><label id="currencyLabel" for="currencySelect">표시 통화</label><select id="currencySelect" aria-label="Display currency"><option value="USD">USD</option><option value="KRW">KRW</option><option value="EUR">EUR</option><option value="JPY">JPY</option><option value="GBP">GBP</option><option value="CAD">CAD</option><option value="AUD">AUD</option><option value="CHF">CHF</option><option value="CNY">CNY</option><option value="INR">INR</option><option value="SGD">SGD</option><option value="HKD">HKD</option><option value="TWD">TWD</option><option value="MXN">MXN</option><option value="PHP">PHP</option><option value="THB">THB</option><option value="VND">VND</option><option value="BRL">BRL</option><option value="AED">AED</option><option value="NZD">NZD</option></select></div><div class="lang-switch" role="group" aria-label="Language / 언어"><button id="langKo" class="is-active" type="button" aria-pressed="true">한국어</button><button id="langEn" type="button" aria-pressed="false">English</button></div><button id="privacyAll" class="ghost" type="button">전체 숨기기</button></div></div>
 <div id="fxStatus" class="fx-status" aria-live="polite">기준 통화: USD · 세금 및 급여 입력은 USD</div><h1>오늘도, 돈은 쌓이는 중.</h1><p class="sub">오늘 번 돈을 실시간으로 확인하세요. 세전·실수령액을 전환하고 여러 직장을 합산할 수 있습니다.</p>
 <div class="mode" role="group" aria-label="표시할 수입 기준"><button id="grossBtn" type="button" aria-pressed="true">Gross · 세전</button><button id="netBtn" type="button" aria-pressed="false">Net · 실수령</button></div>
-<section class="dashboard" id="dashboardDuck" data-duck-theme="before" aria-label="오늘 번 돈"><div class="eyeline"><span class="pulse" id="pulse"></span><span id="workStatus">근무 일정 계산 중</span><span class="clock" id="clock"></span></div><div class="duck-hero"><div class="duck-income"><div class="primary-label">TODAY EARNED · 오늘 번 돈</div><div class="moneyline"><div class="amount huge" id="todayMoney" data-money="today">$0.0000</div><button class="privacy" data-hide="today" title="오늘 수입 숨기기"></button></div><div class="fine" id="todayDescription">오늘 근무 시간에 따라 누적된 금액</div></div><div class="duck-scene" id="duckScene" data-duck-state="before" role="img" aria-label="근무 시작 전 오리"><img class="duck-art" id="duckStateArt" src="assets/ducks/duck_01_before_work_A.svg" alt="" decoding="async" draggable="false"><span class="duck-caption" id="duckCaption">아직 시작 전</span></div></div><div class="shift-progress-panel" aria-label="근무 진행 상황"><div class="spread fine"><div class="work-tracking"><div id="worked" class="worked-breakdown" aria-label="오늘 직장별 근무시간">오늘 0시간 근무</div><div id="endCountdown" class="end-countdown" aria-live="off"></div></div><span id="percent">0%</span></div><div class="bar" id="workProgressBar"><div id="progress"></div><span class="lunch-tick" id="lunchTick" aria-hidden="true"></span><span class="duck-progress-face" id="duckProgressFace" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M6 15C6 7 12 4 18 5c-2-4 4-4 5 2 4 2 5 5 5 10 0 8-6 12-13 12S5 24 6 15Z" fill="#fff2d5" stroke="#463342" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 15q2-3 4 0m7 0q2-3 4 0" fill="none" stroke="#322a39" stroke-width="2.1" stroke-linecap="round"/><ellipse cx="9" cy="19" rx="2.7" ry="1.8" fill="#f7b5a4" opacity=".65"/><ellipse cx="25" cy="19" rx="2.7" ry="1.8" fill="#f7b5a4" opacity=".65"/><path d="M13 19q3-3 6 0 5 0 5 3-3 4-7 4-6 0-7-4 0-3 3-3Z" fill="#f9aa2a" stroke="#d8871a" stroke-width="1.6"/></svg></span></div><div class="shift-split" id="shiftSplit" hidden><span id="shiftMorning"></span><span id="shiftAfternoon"></span></div><div class="live-chart" id="liveChart" hidden><div class="live-chart-head"><span class="live-chart-tag" id="liveChartTag">LIVE · 최근 2분</span><span id="liveChartRate"></span></div><canvas id="liveZoom" aria-label="최근 2분 누적 수입 차트" role="img"></canvas><canvas id="liveDay" aria-label="오늘 하루 누적 수입 차트" role="img"></canvas><div class="live-chart-foot"><span id="liveDayStart"></span><span id="liveDayEnd"></span></div></div></div><div class="triples"><div class="mini"><div class="fine">오늘 하루 예상 총수입</div><div class="moneyline"><strong data-money="target">$0.00</strong><button class="privacy" data-hide="target"></button></div></div><div class="mini"><div class="fine">오늘 남은 수입</div><div class="moneyline"><strong data-money="remaining">$0.00</strong><button class="privacy" data-hide="remaining"></button></div></div><div class="mini"><div class="fine">현재 근무 중 수입 속도</div><div class="moneyline"><strong data-money="rate">$0.0000/s</strong><button class="privacy" data-hide="rate"></button></div></div></div></section>
+<section class="dashboard" id="dashboardDuck" data-duck-theme="before" aria-label="오늘 번 돈"><div class="eyeline"><span class="pulse" id="pulse"></span><span id="workStatus">근무 일정 계산 중</span><span class="clock" id="clock"></span></div><div class="duck-hero"><div class="duck-income"><div class="primary-label">TODAY EARNED · 오늘 번 돈</div><div class="moneyline"><div class="amount huge" id="todayMoney" data-money="today">$0.0000</div><button class="privacy" data-hide="today" title="오늘 수입 숨기기"></button></div><div class="fine" id="todayDescription">오늘 근무 시간에 따라 누적된 금액</div></div><div class="duck-scene" id="duckScene" data-duck-state="before" role="img" aria-label="근무 시작 전 오리"><img class="duck-art" id="duckStateArt" src="assets/ducks/duck_01_before_work_A.svg" alt="" decoding="async" draggable="false"><span class="duck-caption" id="duckCaption">아직 시작 전</span></div></div><div class="shift-progress-panel" aria-label="근무 진행 상황"><div class="spread fine"><div class="work-tracking"><div id="worked" class="worked-breakdown" aria-label="오늘 직장별 근무시간">오늘 0시간 근무</div><div id="endCountdown" class="end-countdown" aria-live="off"></div></div><span id="percent">0%</span></div><div class="bar" id="workProgressBar"><div id="progress"></div><span class="lunch-tick" id="lunchTick" aria-hidden="true"></span><span class="duck-progress-face" id="duckProgressFace" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M6 15C6 7 12 4 18 5c-2-4 4-4 5 2 4 2 5 5 5 10 0 8-6 12-13 12S5 24 6 15Z" fill="#fff2d5" stroke="#463342" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 15q2-3 4 0m7 0q2-3 4 0" fill="none" stroke="#322a39" stroke-width="2.1" stroke-linecap="round"/><ellipse cx="9" cy="19" rx="2.7" ry="1.8" fill="#f7b5a4" opacity=".65"/><ellipse cx="25" cy="19" rx="2.7" ry="1.8" fill="#f7b5a4" opacity=".65"/><path d="M13 19q3-3 6 0 5 0 5 3-3 4-7 4-6 0-7-4 0-3 3-3Z" fill="#f9aa2a" stroke="#d8871a" stroke-width="1.6"/></svg></span></div><div class="shift-split" id="shiftSplit" hidden><span id="shiftMorning"></span><span id="shiftAfternoon"></span></div><div class="live-chart" id="liveChart" hidden><div class="live-chart-head"><span class="live-chart-tag" id="liveChartTag">LIVE · 이번 1분</span><span id="liveChartRate"></span></div><canvas id="liveZoom" aria-label="이번 1분 누적 수입 차트" role="img"></canvas><canvas id="liveDay" aria-label="오늘 하루 누적 수입 차트" role="img"></canvas><div class="live-chart-foot"><span id="liveDayStart"></span><span id="liveDayEnd"></span></div></div></div><div class="triples"><div class="mini"><div class="fine">오늘 하루 예상 총수입</div><div class="moneyline"><strong data-money="target">$0.00</strong><button class="privacy" data-hide="target"></button></div></div><div class="mini"><div class="fine">오늘 남은 수입</div><div class="moneyline"><strong data-money="remaining">$0.00</strong><button class="privacy" data-hide="remaining"></button></div></div><div class="mini"><div class="fine">현재 근무 중 수입 속도</div><div class="moneyline"><strong data-money="rate">$0.0000/s</strong><button class="privacy" data-hide="rate"></button></div></div></div></section>
 <details class="payday-panel collapsible-panel" id="paydayPanel"><summary class="collapsible-summary"><span class="collapsible-heading">PAYDAY · 다음 급여일</span><span class="collapsible-chevron" aria-hidden="true"></span></summary><div class="payday-body"><div class="payday-head"><button class="privacy" data-hide="payday" type="button"></button><span data-money="payday" hidden></span></div><div id="paydayList" class="payday-list" aria-live="off"></div></div></details>
 <details class="earnings-panel collapsible-panel" id="earningsPanel"><summary class="collapsible-summary"><span class="collapsible-heading">TOTAL · 입사 이후 누적 수입 (추정)</span><span class="collapsible-chevron" aria-hidden="true"></span></summary><div class="earnings-body"><div class="total"><div class="moneyline"><div class="amount" data-money="lifetime">$0.00</div><button class="privacy" data-hide="lifetime"></button></div><div class="fine" id="careerExplain">각 직장의 입사일과 현재 연봉을 기준으로 추정</div></div><div class="stats"><div class="stat"><div class="fine">이번 주 수입</div><div class="moneyline"><div class="amount" data-money="week">$0.00</div><button class="privacy" data-hide="week"></button></div></div><div class="stat"><div class="fine">이번 달 수입</div><div class="moneyline"><div class="amount" data-money="month">$0.00</div><button class="privacy" data-hide="month"></button></div></div><div class="stat"><div class="fine">올해 수입</div><div class="moneyline"><div class="amount" data-money="year">$0.00</div><button class="privacy" data-hide="year"></button></div></div><div class="stat"><div class="fine">하루 수입 (오늘)</div><div class="moneyline"><div class="amount" data-money="day">$0.00</div><button class="privacy" data-hide="day"></button></div></div></div></div></details>
 <div class="milestone-toast" id="milestoneToast" role="status" aria-live="polite"></div>
@@ -1711,7 +1713,7 @@ function earnedAt(snapshot,dayS,t){
  let v=0;for(const item of snapshot.jobs)v+=Math.min(item.target,Math.max(0,item.clock.today(t)))*item.rate+overtimeAccrued(dayS,t,item.job,item.otRate,item.otLiveWindows).money;
  return v;
 }
-const LIVE_WINDOW=120,LIVE_LEAD=6;
+
 let liveCurve={key:'',x0:0,x1:0,pts:[]},liveFrame=0,liveLastDraw=0;
 const liveReduced=()=>window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function liveDayCurve(snapshot){
@@ -1730,33 +1732,35 @@ function liveCanvas(c){
 }
 const NICE=[.01,.02,.05,.1,.2,.25,.5,1,2,5,10,20,25,50,100,200,500,1000];
 function drawLiveZoom(snapshot,dayS,ts,masked){
- const {g,w,h}=liveCanvas($('#liveZoom'));if(!w)return 0;
- const padL=masked?6:52,padR=10,padT=8,padB=16,cw=w-padL-padR,ch=h-padT-padB;
- const t1=ts+LIVE_LEAD,t0=t1-LIVE_WINDOW-LIVE_LEAD,now=earnedAt(snapshot,dayS,ts),then=earnedAt(snapshot,dayS,ts-LIVE_WINDOW);
- const perSec=Math.max(0,(now-then)/LIVE_WINDOW);
- // Fixed scale per rate so the slope stays readable; the head sits at ~72% height and the grid slides under it.
- const span=Math.max(perSec*LIVE_WINDOW*1.45,Math.max(.05,snapshot.target/2000));
- const yMax=now+span*.28,yMin=yMax-span,X=t=>padL+cw*(t-t0)/(t1-t0),Y=v=>padT+ch*(1-(v-yMin)/(yMax-yMin));
- const step=NICE.find(v=>span/v<=5)||1000;
- g.font='11px system-ui,-apple-system,Segoe UI,sans-serif';g.textBaseline='middle';
- g.strokeStyle='#e8eff2';g.lineWidth=1;g.fillStyle='#7f95a3';
- for(let v=Math.ceil(yMin/step)*step;v<=yMax;v+=step){const y=Math.round(Y(v))+.5;g.beginPath();g.moveTo(padL,y);g.lineTo(w-padR,y);g.stroke();if(!masked){g.textAlign='right';g.fillText(money(v,step<1?2:0),padL-6,y)}}
- g.textBaseline='alphabetic';g.textAlign='center';
- const clockLabel=t=>{const d=new Date(t*1000),hh=d.getHours()%12||12;return hh+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0')};
- for(let t=Math.ceil(t0/15)*15;t<=t1;t+=15){const x=Math.round(X(t))+.5;g.beginPath();g.moveTo(x,padT);g.lineTo(x,padT+ch);g.stroke();if(t%30===0&&x>padL+22&&x<w-padR-22&&t<=ts)g.fillText(clockLabel(t),x,h-3)}
- // Earned line + area (sampled each second; earnings are piecewise linear).
- const pts=[];for(let t=Math.floor(t0);t<=ts;t+=2)pts.push([t,earnedAt(snapshot,dayS,t)]);pts.push([ts,now]);
- const grad=g.createLinearGradient(0,padT,0,padT+ch);grad.addColorStop(0,'rgba(24,165,126,.32)');grad.addColorStop(1,'rgba(24,165,126,.02)');
- g.save();g.beginPath();g.rect(padL,padT,cw,ch);g.clip();
- g.beginPath();g.moveTo(X(pts[0][0]),padT+ch);for(const [t,v] of pts)g.lineTo(X(t),Y(v));g.lineTo(X(ts),padT+ch);g.closePath();g.fillStyle=grad;g.fill();
- g.beginPath();pts.forEach(([t,v],i)=>i?g.lineTo(X(t),Y(v)):g.moveTo(X(t),Y(v)));g.strokeStyle='#159b78';g.lineWidth=2.4;g.lineJoin='round';g.stroke();
- g.restore();
+ // "This minute": the area fills left to right in real time, then the next minute starts.
+ const {g,w,h}=liveCanvas($('#liveZoom'));if(!w)return {perSec:0};
+ const padL=masked?6:52,padR=12,padT=10,padB=18,cw=w-padL-padR,ch=h-padT-padB;
+ const t0=Math.floor(ts/60)*60,t1=t0+60,v0=earnedAt(snapshot,dayS,t0),v1=earnedAt(snapshot,dayS,t1),now=earnedAt(snapshot,dayS,ts);
+ const perSec=Math.max(0,(earnedAt(snapshot,dayS,ts)-earnedAt(snapshot,dayS,ts-2))/2);
+ const span=Math.max(v1-v0,Math.max(.01,snapshot.target/20000));
+ const yMin=v0,yMax=v0+span*1.12,X=t=>padL+cw*(t-t0)/60,Y=v=>padT+ch*(1-(v-yMin)/(yMax-yMin));
+ g.font='11px system-ui,-apple-system,Segoe UI,sans-serif';g.strokeStyle='#e8eff2';g.lineWidth=1;g.fillStyle='#7f95a3';
+ // Horizontal guides: minute start, halfway, projected end.
+ for(const [v,label] of [[v0,true],[v0+span/2,false],[v1,true]]){const y=Math.round(Y(v))+.5;g.beginPath();g.moveTo(padL,y);g.lineTo(w-padR,y);g.stroke();if(!masked&&label){g.textAlign='right';g.textBaseline='middle';g.fillText(money(v,2),padL-6,y)}}
+ // Vertical guides every 10 seconds.
+ g.textAlign='center';g.textBaseline='alphabetic';
+ for(let k=0;k<=6;k++){const x=Math.round(X(t0+k*10))+.5;g.beginPath();g.moveTo(x,padT);g.lineTo(x,padT+ch);g.stroke();g.fillText(':'+String(k*10).padStart(2,'0'),Math.min(Math.max(x,padL+10),w-padR-10),h-4)}
+ // Projected path for the rest of the minute.
+ const proj=[];for(let t=t0;t<=t1;t+=1)proj.push([t,earnedAt(snapshot,dayS,t)]);
+ g.beginPath();proj.forEach(([t,v],i)=>i?g.lineTo(X(t),Y(v)):g.moveTo(X(t),Y(v)));g.setLineDash([4,4]);g.strokeStyle='#c4d3db';g.lineWidth=1.5;g.stroke();g.setLineDash([]);
+ // Filled so far.
+ const done=proj.filter(([t])=>t<ts);done.push([ts,now]);
+ const grad=g.createLinearGradient(0,padT,0,padT+ch);grad.addColorStop(0,'rgba(24,165,126,.55)');grad.addColorStop(1,'rgba(24,165,126,.12)');
+ g.beginPath();g.moveTo(X(t0),padT+ch);for(const [t,v] of done)g.lineTo(X(t),Y(v));g.lineTo(X(ts),padT+ch);g.closePath();g.fillStyle=grad;g.fill();
+ g.beginPath();done.forEach(([t,v],i)=>i?g.lineTo(X(t),Y(v)):g.moveTo(X(t),Y(v)));g.strokeStyle='#159b78';g.lineWidth=2.6;g.lineJoin='round';g.stroke();
+ // Leading edge: a vertical sweep line + pulsing head.
  const hx=X(ts),hy=Y(now),pulse=perSec>0&&!liveReduced()?(Math.sin(performance.now()/260)+1)/2:0;
- g.beginPath();g.arc(hx,hy,6+pulse*5,0,Math.PI*2);g.fillStyle='rgba(24,165,126,'+(.18-pulse*.12)+')';g.fill();
- g.beginPath();g.arc(hx,hy,4.2,0,Math.PI*2);g.fillStyle='#fff';g.fill();g.lineWidth=2.4;g.strokeStyle='#159b78';g.stroke();
- if(!masked){g.textAlign='right';g.textBaseline='bottom';g.font='700 12px system-ui,-apple-system,Segoe UI,sans-serif';g.fillStyle='#16735a';g.fillText(money(now,2),Math.min(hx-8,w-padR),Math.max(padT+14,hy-8))}
- return perSec;
+ g.strokeStyle='rgba(21,155,120,.35)';g.lineWidth=1;g.beginPath();g.moveTo(hx+.5,padT);g.lineTo(hx+.5,padT+ch);g.stroke();
+ g.beginPath();g.arc(hx,hy,6+pulse*5,0,Math.PI*2);g.fillStyle='rgba(24,165,126,'+(.2-pulse*.14)+')';g.fill();
+ g.beginPath();g.arc(hx,hy,4.4,0,Math.PI*2);g.fillStyle='#fff';g.fill();g.lineWidth=2.6;g.strokeStyle='#159b78';g.stroke();
+ return {perSec,minuteEarned:now-v0,minuteTarget:v1-v0,minute:t0};
 }
+let liveLastMinute=0,liveFlashUntil=0;
 function drawLiveDay(snapshot,dayS,ts,masked){
  const {g,w,h}=liveCanvas($('#liveDay'));const curve=liveDayCurve(snapshot);if(!w||!curve.pts.length)return;
  const padL=masked?6:52,padR=10,padT=4,padB=4,cw=w-padL-padR,ch=h-padT-padB,top=Math.max(snapshot.target,curve.pts[curve.pts.length-1][1])||1;
@@ -1786,10 +1790,13 @@ function liveChartFrame(){
  if(liveReduced()&&nowMs-liveLastDraw<1000){scheduleLiveChart(1000-(nowMs-liveLastDraw));return}
  liveLastDraw=nowMs;
  const ts=Date.now()/1000,dayS=snapshot.dayS,masked=hidden.has('today');
- const perSec=drawLiveZoom(snapshot,dayS,ts,masked);drawLiveDay(snapshot,dayS,ts,masked);
- box.classList.toggle('is-idle',!(perSec>0));
- updateText('#liveChartTag',perSec>0?tr('LIVE · 최근 2분','LIVE · last 2 min'):tr('쉬는 중 · 최근 2분','Paused · last 2 min'));
- updateText('#liveChartRate',masked?'':perSec>0?'+'+money(perSec*60,2)+tr('/분','/min'):'');
+ const z=drawLiveZoom(snapshot,dayS,ts,masked),perSec=z.perSec;drawLiveDay(snapshot,dayS,ts,masked);
+ // When a minute completes, briefly show what it added.
+ if(liveLastMinute&&z.minute>liveLastMinute&&perSec>0){liveFlashUntil=nowMs+2200;box.dataset.lastMinute=money(earnedAt(snapshot,dayS,z.minute)-earnedAt(snapshot,dayS,z.minute-60),2)}
+ liveLastMinute=z.minute;
+ box.classList.toggle('is-idle',!(perSec>0));box.classList.toggle('is-flash',nowMs<liveFlashUntil&&!masked);
+ updateText('#liveChartTag',perSec>0?tr('LIVE · 이번 1분','LIVE · this minute'):tr('쉬는 중 · 이번 1분','Paused · this minute'));
+ updateText('#liveChartRate',masked?'':nowMs<liveFlashUntil?tr('✓ 지난 1분 +','✓ Last minute +')+(box.dataset.lastMinute||''):perSec>0?'+'+money(z.minuteEarned,2)+' / '+money(z.minuteTarget,2):'');
  scheduleLiveChart();
 }
 function scheduleLiveChart(delay){
