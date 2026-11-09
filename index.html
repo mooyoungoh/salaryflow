@@ -1648,6 +1648,25 @@ function updateShiftDuck(details){
  if(caption.textContent!==label[lang==='ko'?0:1])caption.textContent=label[lang==='ko'?0:1];
 }
 
+
+function lunchBreakStatus(snapshot,ts,dayS){
+ let latestEnd=0;
+ for(const item of snapshot.jobs){
+  const j=item.job;
+  if(!item.scheduledRegular||j.breakMode==='paid')continue;
+  const start=item.start,hours=num(j.hours,24)*3600,breakSeconds=num(j.breakMinutes,240)*60;
+  if(!(breakSeconds>0))continue;
+  const chosen=dayS+secClock(j.breakStart||'12:00');
+  const begin=chosen>=start&&chosen+breakSeconds<=item.end?chosen:start+Math.min(4*3600,hours/2);
+  if(ts>=begin&&ts<begin+breakSeconds)latestEnd=Math.max(latestEnd,begin+breakSeconds);
+ }
+ return latestEnd;
+}
+function lunchBreakMessage(end){
+ const time=new Date(end*1000).toLocaleTimeString(lang==='ko'?'ko-KR':'en-US',{hour:'numeric',minute:'2-digit'});
+ return tr('점심시간 · 오후 근무 '+time+' 시작','Lunch break · afternoon resumes at '+time);
+}
+
 function shiftSplit(snapshot,ts,dayS){
  // Each job's lunch start splits its day; paid breaks stay paid. Amounts are real
  // accrued/target earnings, so the split always agrees with the main bar.
@@ -1682,6 +1701,11 @@ function renderShiftSplit(snapshot,ts,dayS){
   el.classList.toggle('is-done',done);el.classList.toggle('is-active',!done&&isActive)};
  const inMorning=split.morningEarned<split.morningTarget-0.005;
  part('#shiftMorning','오전','Morning',split.morningEarned,split.morningTarget,split.active&&inMorning);
+ const lunchEnd=lunchBreakStatus(snapshot,ts,dayS);
+ if(lunchEnd){
+  const morning=$('#shiftMorning');
+  if(morning){morning.textContent=lunchBreakMessage(lunchEnd);morning.classList.remove('is-active');}
+ }
  part('#shiftAfternoon','오후','Afternoon',split.afternoonEarned,split.afternoonTarget,split.active&&!inMorning);
 }
 // Coin meter: pick a coin so a full workday is roughly 300-400 coins (about one every 1-2 minutes).
