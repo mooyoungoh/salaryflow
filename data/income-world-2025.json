@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "incomeYear": 2025,
+  "source": "https://wid.world/data/",
+  "retrieval": "WID official country bulk CSV; tptinc992j for equal-split adults aged 20+, p25/p50/p75/p90/p95/p99 thresholds; multiplied constant-price LCU thresholds by yearly WID price index inyixx999i to obtain nominal year LCU; all nine countries required",
+  "values": {
+    "KR": {
+      "name": "South Korea",
+      "ko": "대한민국",
+      "currency": "KRW",
+      "points": [
+        18591640,
+        34814579,
+        57417317,
+        92403759,
+        122210574,
+        256763588
+      ]
+    },
+    "JP": {
+      "name": "Japan",
+      "ko": "일본",
+      "currency": "JPY",
+      "points": [
+        1784221,
+        3914928,
+        4761390,
+        7055973,
+        15398556,
+        43877069
+      ]
+    },
+    "CA": {
+      "name": "Canada",
+      "ko": "캐나다",
+      "currency": "CAD",
+      "points": [
+        30909,
+        65273,
+        109316,
+        171101,
+        232811,
+        449314
+      ]
+    },
+    "GB": {
+      "name": "United Kingdom",
+      "ko": "영국",
+      "currency": "GBP",
+      "points": [
+        23475,
+        37624,
+        56496,
+        85371,
+        116551,
+        271094
+      ]
+    },
+    "AU": {
+      "name": "Australia",
+      "ko": "호주",
+      "currency": "AUD",
+      "points": [
+        38381,
+        86428,
+        143024,
+        215324,
+        284045,
+        559039
+      ]
+    },
+    "FR": {
+      "name": "France",
+      "ko": "프랑스",
+      "currency": "EUR",
+      "points": [
+        20502,
+        37576,
+        56403,
+        81688,
+        109747,
+        238377
+      ]
+    },
+    "ES": {
+      "name": "Spain",
+      "ko": "스페인",
+      "currency": "EUR",
+      "points": [
+        17229,
+        27723,
+        43368,
+        65194,
+        83404,
+        169687
+      ]
+    },
+    "IT": {
+      "name": "Italy",
+      "ko": "이탈리아",
+      "currency": "EUR",
+      "points": [
+        13939,
+        29783,
+        48155,
+        70354,
+        87297,
+        190291
+      ]
+    },
+    "US": {
+      "name": "United States",
+      "ko": "미국",
+      "currency": "USD",
+      "points": [
+        26140,
+        51873,
+        100621,
+        177860,
+        255634,
+        594975
+      ]
+    }
+  }
+}
